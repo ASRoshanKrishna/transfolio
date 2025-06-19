@@ -16,6 +16,7 @@ public class ClubController {
 
     @PostMapping
     public Club addClub(@RequestBody Club club) {
+        System.out.println("Received club: " + club);  // <--- Add this
         return clubRepo.save(club);
     }
 
