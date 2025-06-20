@@ -3,29 +3,47 @@ package com.transfolio.transfolio.model;
 import jakarta.persistence.*;
 import lombok.Data;
 
-@Data
+import java.time.LocalDate;
+
 @Entity
+@Data
 public class NewsEntry {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String title;
-    private String source;
-    private String url;
-    private String publishedAt;
+    @ManyToOne
+    @JoinColumn(name = "player_id")
+    private Player player;
 
-    @Column(length = 3000)
-    private String content;
+    private String playerName;
 
-    @Column(length = 3000)
-    private String summary;
+    private int age;
 
-    private boolean isRelevant;
+    private String position;
+
+    private String transferType; // "arrival" or "departure"
+
+    private String transferFee;
 
     @ManyToOne
+    @JoinColumn(name = "club_id")
     private Club club;
 
-    @ManyToOne
-    private Player player;
+    private String clubName; // new club if arrival, old club if departure
+
+    private String playerImage;
+
+    private String clubImage;
+
+    private LocalDate transferDate;
+
+    private String countryImage;
+
+    private String loan;
+
+    private String positionsDetail;
+
+    private boolean isRelevant;
 }

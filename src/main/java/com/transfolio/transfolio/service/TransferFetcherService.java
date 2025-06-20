@@ -2,17 +2,23 @@ package com.transfolio.transfolio.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.transfolio.transfolio.dto.TransferEntryDTO;
+import com.transfolio.transfolio.model.Club;
+import com.transfolio.transfolio.model.NewsEntry;
+import com.transfolio.transfolio.model.Player;
 import com.transfolio.transfolio.model.UserPreference;
+import com.transfolio.transfolio.repository.ClubRepository;
 import com.transfolio.transfolio.repository.NewsEntryRepository;
+import com.transfolio.transfolio.repository.PlayerRepository;
 import com.transfolio.transfolio.repository.UserPreferenceRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.util.ArrayList;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
@@ -20,9 +26,11 @@ public class TransferFetcherService {
 
     private final UserPreferenceRepository preferenceRepo;
     private final NewsEntryRepository newsRepo;
+    private final ClubRepository clubRepo;
+    private final PlayerRepository playerRepo;
 
     private final String API_URL = "https://transfermarket.p.rapidapi.com/transfers/list-by-club";
-    private final String API_KEY = "d50f7c3db6msh432bcd5aaf9319fp1023c8jsn4d74f1def565"; // Replace with your own
+    private final String API_KEY = "d50f7c3db6msh432bcd5aaf9319fp1023c8jsn4d74f1def565";
     private final String API_HOST = "transfermarket.p.rapidapi.com";
 
     public void fetchTransfersForAllUsers() {
@@ -45,24 +53,17 @@ public class TransferFetcherService {
 
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
                 try {
-                    JsonNode root = mapper.readTree(response.getBody());
-                    JsonNode currentSeason = root.path("currentSeason");
-
-                    List<TransferEntryDTO> arrivals = parseTransfers(currentSeason.path("transferArrivals"));
-                    List<TransferEntryDTO> departures = parseTransfers(currentSeason.path("transferDepartures"));
+                    String json = response.getBody();
+                    JsonNode root = mapper.readTree(json);
+                    JsonNode arrivals = root.path("currentSeason").path("transferArrivals");
+                    JsonNode departures = root.path("currentSeason").path("transferDepartures");
 
                     System.out.println("✅ " + pref.getClubName() + " - Fetched " + arrivals.size() + " arrivals & "
                             + departures.size() + " departures");
 
-                    // 🔥 Display sample for verification (remove later)
-                    if (!arrivals.isEmpty()) {
-                        for(TransferEntryDTO i : arrivals) System.out.println("➡️ Arrival: " + i.getPlayerName() + " → " + i.getClubName());
-                    }
-                    if (!departures.isEmpty()) {
-                        for(TransferEntryDTO i : departures) System.out.println("⬅️ Departure: " + i.getPlayerName() + " → " + i.getClubName());
-                    }
+                    saveTransfers(arrivals, "arrival");
+                    saveTransfers(departures, "departure");
 
-                    // TODO: Save to DB or return to controller
                 } catch (Exception e) {
                     System.err.println("❌ Error parsing JSON for: " + pref.getClubName());
                     e.printStackTrace();
@@ -73,33 +74,58 @@ public class TransferFetcherService {
         }
     }
 
-    private List<TransferEntryDTO> parseTransfers(JsonNode transferArray) {
-        List<TransferEntryDTO> list = new ArrayList<>();
+    private void saveTransfers(JsonNode list, String type) {
+        for (JsonNode item : list) {
+            try {
+                NewsEntry entry = new NewsEntry();
+                entry.setPlayerName(item.path("playerName").asText());
+                entry.setPlayerImage(item.path("playerImage").asText());
+                entry.setAge(item.path("age").asInt());
+                entry.setPosition(item.path("position").asText());
+                entry.setPositionsDetail(item.path("positionsdetail").asText());
+                entry.setTransferType(type);
+                entry.setTransferFee(item.path("transferFee").asText());
+                entry.setClubName(item.path("clubName").asText());
+                entry.setClubImage(item.path("clubImage").asText());
+                entry.setCountryImage(item.path("countryImage").asText());
+                entry.setLoan(item.path("loan").asText());
+                entry.setRelevant(true);
 
-        if (transferArray != null && transferArray.isArray()) {
-            for (JsonNode node : transferArray) {
-                TransferEntryDTO dto = new TransferEntryDTO();
-                dto.setId(node.path("id").asText());
-                dto.setPlayerName(node.path("playerName").asText());
-                dto.setPlayerImage(node.path("playerImage").asText());
-                dto.setAge(node.path("age").asInt());
-                dto.setPosition(node.path("position").asText());
-                dto.setTransferFee(node.path("transferFee").asText());
-                dto.setTransferFeeCurrency(node.path("transferFeeCurrency").asText());
-                dto.setTransferFeeNumeral(node.path("transferFeeNumeral").asText());
-                dto.setTransferFeeUnformatted(node.path("transferFeeUnformatted").asLong());
-                dto.setLoan(node.path("loan").asText());
-                dto.setDate(node.path("date").asText());
-                dto.setPositionsdetail(node.path("positionsdetail").asText());
-                dto.setClubID(node.path("clubID").asText());
-                dto.setClubName(node.path("clubName").asText());
-                dto.setClubImage(node.path("clubImage").asText());
-                dto.setCountryImage(node.path("countryImage").asText());
+                // Parse and set date
+                String dateStr = item.path("date").asText();
+                try {
+                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.ENGLISH);
+                    entry.setTransferDate(LocalDate.parse(dateStr, formatter));
+                } catch (Exception e) {
+                    entry.setTransferDate(null);
+                }
 
-                list.add(dto);
+                // Set club (FK)
+                String clubId = item.path("clubID").asText();
+                Club club = clubRepo.findById(clubId).orElseGet(() -> {
+                    Club newClub = new Club();
+                    newClub.setId(clubId);
+                    newClub.setName(item.path("clubName").asText());
+                    newClub.setLogoUrl(item.path("clubImage").asText());
+                    return clubRepo.save(newClub);
+                });
+                entry.setClub(club);
+
+                // Set player (FK)
+                String playerId = item.path("id").asText();
+                Player player = playerRepo.findById(playerId).orElseGet(() -> {
+                    Player newPlayer = new Player();
+                    newPlayer.setId(playerId);
+                    newPlayer.setName(item.path("playerName").asText());
+                    return playerRepo.save(newPlayer);
+                });
+                entry.setPlayer(player);
+
+                newsRepo.save(entry);
+
+            } catch (Exception e) {
+                System.err.println("⚠️ Skipped entry due to error: " + e.getMessage());
             }
         }
-
-        return list;
     }
 }
