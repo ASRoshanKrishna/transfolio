@@ -15,7 +15,7 @@ public class TransferNewsService {
     private final String apiHost = "transfermarket.p.rapidapi.com";
 
     public String fetchTransferRumors() {
-        String url = "https://transfermarket.p.rapidapi.com/transfers/list-rumors?domain=de&country_id=all&season_id=2023";
+        String url = "https://transfermarket.p.rapidapi.com/transfers/list-rumors?clubIds=131&competitionIds=ES1&sort=date_desc&domain=com";
 
         HttpHeaders headers = new HttpHeaders();
         headers.set("X-RapidAPI-Key", apiKey);
