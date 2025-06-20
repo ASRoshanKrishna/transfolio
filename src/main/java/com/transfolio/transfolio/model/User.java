@@ -15,6 +15,6 @@ public class User {
     private String username;
     private String email;
 
-    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
-    private List<UserPreference> preferences;
+//    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
+//    private List<UserPreference> preferences;
 }
