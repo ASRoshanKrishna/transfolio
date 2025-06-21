@@ -9,6 +9,8 @@ import java.util.List;
 @Entity
 public class Club {
     @Id
+//    @Column(nullable = false, unique = true)
+    @Column(columnDefinition = "varchar(255)") // 👈 force DB to treat it as VARCHAR
     private String id;
 
     private String name;

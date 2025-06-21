@@ -18,9 +18,15 @@ public class UserService {
         return userRepo.save(user);
     }
 
-    public Optional<User> login(String email, String password) {
-        return userRepo.findByEmail(email)
-                .filter(u -> u.getPassword().equals(password)); // plain-text, can upgrade later
+    public User login(String email, String password) {
+        User user = userRepo.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        if (!user.getPassword().equals(password)) {
+            throw new RuntimeException("Invalid password");
+        }
+
+        return user;
     }
 
     public Optional<User> getById(Long id) {

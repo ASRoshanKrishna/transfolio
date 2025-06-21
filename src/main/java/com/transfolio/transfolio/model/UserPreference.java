@@ -1,5 +1,6 @@
 package com.transfolio.transfolio.model;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Data;
 
@@ -13,6 +14,7 @@ public class UserPreference {
 
     @ManyToOne
     @JoinColumn(name = "user_id")
+    @JsonIgnore  // 💡 prevent infinite recursion
     private User user;
 
     private String clubIdApi;         // e.g. "131"
