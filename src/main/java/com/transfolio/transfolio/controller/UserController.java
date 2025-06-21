@@ -1,6 +1,7 @@
 package com.transfolio.transfolio.controller;
 
 import com.transfolio.transfolio.dto.UserLoginDTO;
+import com.transfolio.transfolio.dto.UserResponseDTO;
 import com.transfolio.transfolio.model.User;
 import com.transfolio.transfolio.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -24,9 +25,15 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<User> login(@RequestBody UserLoginDTO loginDTO) {
+
+    public ResponseEntity<UserResponseDTO> login(@RequestBody UserLoginDTO loginDTO) {
         User user = userService.login(loginDTO.getEmail(), loginDTO.getPassword());
-        System.out.println("Welcome " + user.getUsername());
-        return ResponseEntity.ok(user);
+
+        UserResponseDTO dto = new UserResponseDTO();
+        dto.setId(user.getId());
+        dto.setUsername(user.getUsername());
+        dto.setEmail(user.getEmail());
+
+        return ResponseEntity.ok(dto);
     }
 }
