@@ -11,6 +11,7 @@ import com.transfolio.transfolio.repository.NewsEntryRepository;
 import com.transfolio.transfolio.repository.PlayerRepository;
 import com.transfolio.transfolio.repository.UserPreferenceRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -28,6 +29,9 @@ public class TransferFetcherService {
     private final NewsEntryRepository newsRepo;
     private final ClubRepository clubRepo;
     private final PlayerRepository playerRepo;
+
+    @Autowired
+    private final SummaryGeneratorService summaryGeneratorService;
 
     private final String API_URL = "https://transfermarket.p.rapidapi.com/transfers/list-by-club";
     private final String API_KEY = "d50f7c3db6msh432bcd5aaf9319fp1023c8jsn4d74f1def565";
@@ -122,6 +126,18 @@ public class TransferFetcherService {
                 entry.setPlayer(player);
 
                 newsRepo.save(entry);
+
+                String summary = summaryGeneratorService.generateSummary(entry);
+                entry.setSummary(summary);
+
+                try {
+                    Thread.sleep(1000); // 1000 ms = 1 second
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt(); // Restore interrupt flag
+                    System.err.println("Sleep interrupted during AI summary generation");
+                }
+
+                newsRepo.save(entry); // save again with summary
 
             } catch (Exception e) {
                 System.err.println("⚠️ Skipped entry due to error: " + e.getMessage());

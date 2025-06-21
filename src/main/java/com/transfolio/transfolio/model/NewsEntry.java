@@ -13,6 +13,9 @@ public class NewsEntry {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(columnDefinition = "TEXT")
+    private String summary;
+
     @ManyToOne
     @JoinColumn(name = "player_id")
     private Player player;
