@@ -18,4 +18,8 @@ public class UserPreference {
     private String competitionId;     // e.g. "ES1"
     private String competitionName;   // e.g. "LaLiga"
     private String logoUrl;           // club logo
+
+    @ManyToOne
+    @JoinColumn(name = "user_id")
+    private User user;
 }

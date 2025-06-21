@@ -2,10 +2,9 @@ package com.transfolio.transfolio.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
-import java.util.List;
 
-@Data
 @Entity
+@Data
 public class User {
 
     @Id
@@ -13,8 +12,8 @@ public class User {
     private Long id;
 
     private String username;
+
     private String email;
 
-//    @OneToMany(mappedBy = "user", cascade = CascadeType.ALL)
-//    private List<UserPreference> preferences;
+    private String password;
 }
