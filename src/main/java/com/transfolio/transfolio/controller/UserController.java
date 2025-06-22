@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/users")
+@RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class UserController {
     @Autowired
@@ -21,6 +21,11 @@ public class UserController {
     @PostMapping("/register")
     public ResponseEntity<User> register(@RequestBody User user) {
         User savedUser = userService.register(user);
+
+        if(savedUser == null) {
+            return ResponseEntity.status(409).build(); // 409 Conflict
+        }
+
         return ResponseEntity.ok(savedUser);
     }
 

@@ -15,7 +15,7 @@ public class UserService {
 
     public User register(User user) {
         if (userRepo.findByEmail(user.getEmail()).isPresent()) {
-            throw new RuntimeException("Email already registered");
+            return null;
         }
         return userRepo.save(user);
     }
