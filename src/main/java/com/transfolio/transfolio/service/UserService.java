@@ -20,15 +20,20 @@ public class UserService {
         return userRepo.save(user);
     }
 
-    public User login(String email, String password) {
-        User user = userRepo.findByEmail(email)
-                .orElseThrow(() -> new RuntimeException("User not found"));
+    public Object login(String email, String password) {
+        Optional<User> userOpt = userRepo.findByEmail(email);
 
-        if (!user.getPassword().equals(password)) {
-            throw new RuntimeException("Invalid password");
+        if (userOpt.isEmpty()) {
+            return 0; // user not found
         }
 
-        return user;
+        User user = userOpt.get();
+
+        if (!user.getPassword().equals(password)) {
+            return 1; // invalid password
+        }
+
+        return user; // success
     }
 
     public Optional<User> getById(Long id) {

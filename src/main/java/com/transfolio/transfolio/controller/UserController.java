@@ -30,10 +30,20 @@ public class UserController {
     }
 
     @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody UserLoginDTO loginDTO) {
+        Object result = userService.login(loginDTO.getEmail(), loginDTO.getPassword());
 
-    public ResponseEntity<UserResponseDTO> login(@RequestBody UserLoginDTO loginDTO) {
-        User user = userService.login(loginDTO.getEmail(), loginDTO.getPassword());
+        if (result instanceof Integer) {
+            int code = (Integer) result;
+            if (code == 0) {
+                return ResponseEntity.status(404).body("User not found");
+            } else if (code == 1) {
+                return ResponseEntity.status(401).body("Invalid password");
+            }
+        }
 
+        assert result instanceof User;
+        User user = (User) result;
         UserResponseDTO dto = new UserResponseDTO();
         dto.setId(user.getId());
         dto.setUsername(user.getUsername());
@@ -41,4 +51,5 @@ public class UserController {
 
         return ResponseEntity.ok(dto);
     }
+
 }
