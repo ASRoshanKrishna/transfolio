@@ -47,7 +47,6 @@ public class TransferFetcherService {
     }
 
     // 📍 Used for personalized /news/{userId} live fetch
-    @Transactional
     public List<NewsEntry> fetchAndStoreTransfers(UserPreference pref) {
         List<NewsEntry> newEntries = new ArrayList<>();
 
@@ -90,22 +89,38 @@ public class TransferFetcherService {
 
         for (JsonNode item : list) {
             try {
+                // ✅ Prepare essential fields
                 String playerId = item.path("id").asText();
                 String fee = item.path("transferFee").asText();
                 String dateStr = item.path("date").asText();
                 LocalDate transferDate = parseDate(dateStr);
-
-                // Always use the club the user is tracking (from UserPreference)
                 String trackedClubId = pref.getClubIdApi();
 
-                // Check if already present (simple check on player + date + club)
                 boolean exists = newsRepo.existsByPlayer_IdAndTransferDateAndClub_Id(
-                        playerId,
-                        transferDate,
-                        trackedClubId
+                        playerId, transferDate, trackedClubId
                 );
                 if (exists) continue;
 
+                // ✅ Prepare Club + Player safely
+                Club club = clubRepo.findById(trackedClubId).orElseGet(() -> {
+                    Club newClub = new Club();
+                    newClub.setId(trackedClubId);
+                    newClub.setName(pref.getClubName());
+                    newClub.setLogoUrl(pref.getLogoUrl());
+                    newClub.setCompetitionId(pref.getCompetitionId());
+                    return clubRepo.save(newClub);
+                });
+
+                Player player = playerRepo.findById(playerId).orElseGet(() -> {
+                    Player newPlayer = new Player();
+                    newPlayer.setId(playerId);
+                    newPlayer.setName(item.path("playerName").asText());
+                    newPlayer.setPosition(item.path("positionsdetail").asText());
+                    newPlayer.setClub(club);
+                    return playerRepo.save(newPlayer);
+                });
+
+                // ✅ Create and save NewsEntry
                 NewsEntry entry = new NewsEntry();
                 entry.setPlayerName(item.path("playerName").asText());
                 entry.setPlayerImage(item.path("playerImage").asText());
@@ -120,42 +135,25 @@ public class TransferFetcherService {
                 entry.setLoan(item.path("loan").asText());
                 entry.setRelevant(true);
                 entry.setTransferDate(transferDate);
-
-                // FK - Club → tracked club
-                Club club = clubRepo.findById(trackedClubId).orElseGet(() -> {
-                    Club newClub = new Club();
-                    newClub.setId(trackedClubId);
-                    newClub.setName(pref.getClubName());
-                    newClub.setLogoUrl(pref.getLogoUrl());
-                    newClub.setCompetitionId(pref.getCompetitionId());
-                    return clubRepo.save(newClub);
-                });
                 entry.setClub(club);
-
-                // FK - Player
-                Player player = playerRepo.findById(playerId).orElseGet(() -> {
-                    Player newPlayer = new Player();
-                    newPlayer.setId(playerId);
-                    newPlayer.setName(item.path("playerName").asText());
-                    newPlayer.setPosition(item.path("positionsdetail").asText()); // fixed "podition"
-                    newPlayer.setClub(club);
-                    return playerRepo.save(newPlayer);
-                });
                 entry.setPlayer(player);
 
-                // Save news
-                newsRepo.save(entry);
+                // ✅ Save initial entry (no summary yet)
+                NewsEntry savedEntry = newsRepo.save(entry);
+                saved.add(savedEntry);
 
-                // 🧠 Summary
-                String summary = summaryGeneratorService.generateSummary(entry);
-                entry.setSummary(summary);
-
-                Thread.sleep(1000); // Gemini rate limit
-                newsRepo.save(entry);
-
-                saved.add(entry);
-
-                notificationService.notifyUser(pref.getUser().getId(), summary);
+                // ✅ Outside transaction: Summary + Sleep + Update
+                new Thread(() -> {
+                    try {
+                        String summary = summaryGeneratorService.generateSummary(savedEntry);
+                        savedEntry.setSummary(summary);
+                        newsRepo.save(savedEntry); // update with summary
+                        notificationService.notifyUser(pref.getUser().getId(), summary);
+                        Thread.sleep(1000); // 👈 Now it's safely outside transaction
+                    } catch (Exception ex) {
+                        System.err.println("⚠️ Error in summary thread: " + ex.getMessage());
+                    }
+                }).start();
 
             } catch (Exception e) {
                 System.err.println("⚠️ Error saving transfer: " + e.getMessage());
@@ -164,6 +162,7 @@ public class TransferFetcherService {
 
         return saved;
     }
+
 
     private LocalDate parseDate(String dateStr) {
         try {
