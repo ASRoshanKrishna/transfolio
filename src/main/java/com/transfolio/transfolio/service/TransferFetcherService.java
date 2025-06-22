@@ -18,8 +18,7 @@ import org.springframework.web.client.RestTemplate;
 
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.List;
-import java.util.Locale;
+import java.util.*;
 
 @Service
 @RequiredArgsConstructor
@@ -29,58 +28,80 @@ public class TransferFetcherService {
     private final NewsEntryRepository newsRepo;
     private final ClubRepository clubRepo;
     private final PlayerRepository playerRepo;
-
-    @Autowired
     private final SummaryGeneratorService summaryGeneratorService;
-
+    private final NotificationService notificationService;
     private final String API_URL = "https://transfermarket.p.rapidapi.com/transfers/list-by-club";
     private final String API_KEY = "d50f7c3db6msh432bcd5aaf9319fp1023c8jsn4d74f1def565";
     private final String API_HOST = "transfermarket.p.rapidapi.com";
 
+    private final RestTemplate restTemplate = new RestTemplate();
+    private final ObjectMapper mapper = new ObjectMapper();
+
+    // 📍 Used by scheduler
     public void fetchTransfersForAllUsers() {
         List<UserPreference> preferences = preferenceRepo.findAll();
-        RestTemplate restTemplate = new RestTemplate();
-        ObjectMapper mapper = new ObjectMapper();
-
         for (UserPreference pref : preferences) {
-            HttpHeaders headers = new HttpHeaders();
-            headers.set("X-RapidAPI-Key", API_KEY);
-            headers.set("X-RapidAPI-Host", API_HOST);
-            headers.setContentType(MediaType.APPLICATION_JSON);
-
-            String url = API_URL + "?id=" + pref.getClubIdApi()
-                    + "&seasonID=2025"
-                    + "&domain=com";
-
-            HttpEntity<String> entity = new HttpEntity<>(headers);
-            ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
-
-            if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
-                try {
-                    String json = response.getBody();
-                    JsonNode root = mapper.readTree(json);
-                    JsonNode arrivals = root.path("currentSeason").path("transferArrivals");
-                    JsonNode departures = root.path("currentSeason").path("transferDepartures");
-
-                    System.out.println("✅ " + pref.getClubName() + " - Fetched " + arrivals.size() + " arrivals & "
-                            + departures.size() + " departures");
-
-                    saveTransfers(arrivals, "arrival");
-                    saveTransfers(departures, "departure");
-
-                } catch (Exception e) {
-                    System.err.println("❌ Error parsing JSON for: " + pref.getClubName());
-                    e.printStackTrace();
-                }
-            } else {
-                System.out.println("❌ API fetch failed for: " + pref.getClubName());
-            }
+            fetchAndStoreTransfers(pref);
         }
     }
 
-    private void saveTransfers(JsonNode list, String type) {
+    // 📍 Used for personalized /news/{userId} live fetch
+    public List<NewsEntry> fetchAndStoreTransfers(UserPreference pref) {
+        List<NewsEntry> newEntries = new ArrayList<>();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.set("X-RapidAPI-Key", API_KEY);
+        headers.set("X-RapidAPI-Host", API_HOST);
+        headers.setContentType(MediaType.APPLICATION_JSON);
+
+        String url = API_URL + "?id=" + pref.getClubIdApi()
+                + "&seasonID=2025&domain=com";
+
+        HttpEntity<String> entity = new HttpEntity<>(headers);
+        ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
+
+        if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
+            try {
+                JsonNode root = mapper.readTree(response.getBody());
+                JsonNode arrivals = root.path("currentSeason").path("transferArrivals");
+                JsonNode departures = root.path("currentSeason").path("transferDepartures");
+
+                System.out.println("✅ " + pref.getClubName() + " - " +
+                        arrivals.size() + " arrivals & " + departures.size() + " departures");
+
+                newEntries.addAll(saveTransfers(arrivals, "arrival", pref));
+                newEntries.addAll(saveTransfers(departures, "departure", pref));
+
+            } catch (Exception e) {
+                System.err.println("❌ JSON parse failed for: " + pref.getClubName());
+                e.printStackTrace();
+            }
+        } else {
+            System.err.println("❌ API call failed for club: " + pref.getClubName());
+        }
+
+        return newEntries;
+    }
+
+    private List<NewsEntry> saveTransfers(JsonNode list, String type, UserPreference pref) {
+        List<NewsEntry> saved = new ArrayList<>();
+
         for (JsonNode item : list) {
             try {
+                String playerId = item.path("id").asText();
+                String clubId = item.path("clubID").asText();
+                String fee = item.path("transferFee").asText();
+                String dateStr = item.path("date").asText();
+
+                // Check if already present (simple check on player + date + club)
+                boolean exists = newsRepo.existsByPlayer_IdAndTransferDateAndClub_Id(
+                        playerId,
+                        parseDate(dateStr),
+                        clubId
+                );
+
+                if (exists) continue;
+
                 NewsEntry entry = new NewsEntry();
                 entry.setPlayerName(item.path("playerName").asText());
                 entry.setPlayerImage(item.path("playerImage").asText());
@@ -88,24 +109,15 @@ public class TransferFetcherService {
                 entry.setPosition(item.path("position").asText());
                 entry.setPositionsDetail(item.path("positionsdetail").asText());
                 entry.setTransferType(type);
-                entry.setTransferFee(item.path("transferFee").asText());
+                entry.setTransferFee(fee);
                 entry.setClubName(item.path("clubName").asText());
                 entry.setClubImage(item.path("clubImage").asText());
                 entry.setCountryImage(item.path("countryImage").asText());
                 entry.setLoan(item.path("loan").asText());
                 entry.setRelevant(true);
+                entry.setTransferDate(parseDate(dateStr));
 
-                // Parse and set date
-                String dateStr = item.path("date").asText();
-                try {
-                    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.ENGLISH);
-                    entry.setTransferDate(LocalDate.parse(dateStr, formatter));
-                } catch (Exception e) {
-                    entry.setTransferDate(null);
-                }
-
-                // Set club (FK)
-                String clubId = item.path("clubID").asText();
+                // FK - Club
                 Club club = clubRepo.findById(clubId).orElseGet(() -> {
                     Club newClub = new Club();
                     newClub.setId(clubId);
@@ -115,8 +127,7 @@ public class TransferFetcherService {
                 });
                 entry.setClub(club);
 
-                // Set player (FK)
-                String playerId = item.path("id").asText();
+                // FK - Player
                 Player player = playerRepo.findById(playerId).orElseGet(() -> {
                     Player newPlayer = new Player();
                     newPlayer.setId(playerId);
@@ -127,21 +138,32 @@ public class TransferFetcherService {
 
                 newsRepo.save(entry);
 
+                // 🧠 Summary + sleep
                 String summary = summaryGeneratorService.generateSummary(entry);
                 entry.setSummary(summary);
 
-                try {
-                    Thread.sleep(1000); // 1000 ms = 1 second
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt(); // Restore interrupt flag
-                    System.err.println("Sleep interrupted during AI summary generation");
-                }
+                Thread.sleep(1000); // 1s sleep for API quota
+                newsRepo.save(entry); // update with summary
 
-                newsRepo.save(entry); // save again with summary
+                saved.add(entry);
+
+                // Optional: Notify user
+                notificationService.notifyUser(pref.getUser().getId(), summary);
 
             } catch (Exception e) {
-                System.err.println("⚠️ Skipped entry due to error: " + e.getMessage());
+                System.err.println("⚠️ Error saving transfer: " + e.getMessage());
             }
+        }
+
+        return saved;
+    }
+
+    private LocalDate parseDate(String dateStr) {
+        try {
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MMM d, yyyy", Locale.ENGLISH);
+            return LocalDate.parse(dateStr, formatter);
+        } catch (Exception e) {
+            return null;
         }
     }
 }
