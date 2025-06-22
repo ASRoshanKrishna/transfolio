@@ -15,8 +15,9 @@ public class SearchController {
     private SearchService searchService;
 
     @GetMapping("/clubs")
-    public List<SearchResultDTO> searchClubs(@RequestParam String query) {
-        System.out.println("query is: " + query);
+    public List<SearchResultDTO> searchClubs(@RequestParam String query,
+                                             @RequestParam(required = false) Long userId) {
+        System.out.println("query is: " + query + " from userId: " + userId);
         return searchService.searchClubs(query);
     }
 }

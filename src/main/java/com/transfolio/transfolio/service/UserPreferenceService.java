@@ -19,12 +19,17 @@ public class UserPreferenceService {
     private UserRepository userRepo; // Make sure this is present
 
     public UserPreference savePreference(UserPreferenceDTO dto) {
-        UserPreference pref = new UserPreference();
+        // Step 1: Check if already exists
+        boolean exists = repository.existsByUser_IdAndClubIdApi(dto.getUserId(), dto.getClubIdApi());
+        if (exists) {
+            throw new RuntimeException("Preference already exists");
+        }
 
-        // 🧠 Fetch full User entity by ID
+        // Step 2: If not, continue as before
         User user = userRepo.findById(dto.getUserId())
                 .orElseThrow(() -> new RuntimeException("User not found with ID: " + dto.getUserId()));
 
+        UserPreference pref = new UserPreference();
         pref.setUser(user);
         pref.setClubIdApi(dto.getClubIdApi());
         pref.setClubName(dto.getClubName());
@@ -34,7 +39,6 @@ public class UserPreferenceService {
 
         return repository.save(pref);
     }
-
 
     public List<UserPreference> getPreferencesForUser(Long userId) {
         return repository.findByUserId(userId);
