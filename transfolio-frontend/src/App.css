@@ -34,3 +34,25 @@
   justify-content: center;
   gap: 1rem;
 }
+.news-container {
+  padding: 20px;
+  max-width: 800px;
+  margin: auto;
+}
+
+.news-entry {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  border: 1px solid #ccc;
+  background-color: #fdfdfd;
+  border-radius: 8px;
+  margin-bottom: 15px;
+  padding: 10px;
+}
+
+.summary-text {
+  font-style: italic;
+  margin-top: 5px;
+  color: #444;
+}

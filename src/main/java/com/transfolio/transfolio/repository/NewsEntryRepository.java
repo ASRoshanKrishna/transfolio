@@ -15,4 +15,5 @@ public interface NewsEntryRepository extends JpaRepository<NewsEntry, Long> {
 
     // ✅ Used to check if this transfer already exists before re-saving
     boolean existsByPlayer_IdAndTransferDateAndClub_Id(String playerId, LocalDate transferDate, String clubId);
+    List<NewsEntry> findByClub_IdOrderByTransferDateDesc(String clubId);
 }

@@ -1,6 +1,5 @@
 package com.transfolio.transfolio.service;
 
-import com.transfolio.transfolio.service.NotificationService;
 import com.transfolio.transfolio.dto.TransferRumorDTO;
 import com.transfolio.transfolio.model.NewsEntry;
 import com.transfolio.transfolio.model.UserPreference;
@@ -25,48 +24,20 @@ public class PersonalizedNewsService {
 
     public List<NewsEntry> getNewsForUser(Long userId) {
         List<UserPreference> preferences = preferenceRepo.findByUserId(userId);
-        List<NewsEntry> finalResult = new ArrayList<>();
 
+        // Step 1: Ensure latest data is stored
         for (UserPreference pref : preferences) {
-            // 💡 Step 1: Fetch live data from API
-            List<NewsEntry> liveTransfers = transferFetcherService.fetchAndStoreTransfers(pref);
+            transferFetcherService.fetchAndStoreTransfers(pref);
+        }
 
-            for (NewsEntry transfer : liveTransfers) {
-                // 💡 Step 2: Check if already exists in DB (e.g. by player + club + date)
-                boolean exists = newsRepo.existsByPlayer_IdAndTransferDateAndClub_Id(
-                        transfer.getPlayer().getId(),
-                        transfer.getTransferDate(),
-                        transfer.getClub().getId()
-                );
-
-                if (!exists) {
-                    // 💡 Step 3: Save transfer
-                    newsRepo.save(transfer);
-
-                    // 💡 Step 4: Generate Summary
-                    String summary = summaryGeneratorService.generateSummary(transfer);
-                    transfer.setSummary(summary);
-
-                    // 💡 Step 5: Notify the user
-                    notificationService.notifyUser(pref.getUser().getId(), summary);
-
-                    try {
-                        Thread.sleep(1000); // Gemini rate-limiting
-                    } catch (InterruptedException e) {
-                        Thread.currentThread().interrupt();
-                    }
-
-                    // Save updated summary
-                    newsRepo.save(transfer);
-                }
-
-                finalResult.add(transfer);
-            }
+        // Step 2: Fetch ALL transfer news from DB for the user's tracked clubs
+        List<NewsEntry> finalResult = new ArrayList<>();
+        for (UserPreference pref : preferences) {
+            finalResult.addAll(newsRepo.findByClub_IdOrderByTransferDateDesc(pref.getClubIdApi()));
         }
 
         return finalResult;
     }
-
 
     public List<TransferRumorDTO> getRumorsForUser(Long userId) {
         List<UserPreference> preferences = preferenceRepo.findByUserId(userId);
