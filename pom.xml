@@ -33,6 +33,19 @@
 			<artifactId>spring-boot-starter-data-jpa</artifactId>
 		</dependency>
 
+		<!-- Spring Boot Starter Mail -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-mail</artifactId>
+		</dependency>
+
+		<!-- Jakarta Mail API -->
+		<dependency>
+			<groupId>com.sun.mail</groupId>
+			<artifactId>jakarta.mail</artifactId>
+			<version>2.0.1</version> <!-- Or latest stable -->
+		</dependency>
+
 		<!-- LocalDate -->
 		<dependency>
 			<groupId>com.fasterxml.jackson.datatype</groupId>
