@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import '../App.css';
 
 const SearchPreferencePage = () => {
@@ -7,8 +8,8 @@ const SearchPreferencePage = () => {
   const [clubs, setClubs] = useState([]);
   const [message, setMessage] = useState('');
   const [cooldown, setCooldown] = useState(0);
+  const navigate = useNavigate();
 
-  // ⏱ Decrease cooldown every second
   useEffect(() => {
     let timer;
     if (cooldown > 0) {
@@ -31,8 +32,8 @@ const SearchPreferencePage = () => {
     }
 
     if (!searchTerm.trim()) {
-       setMessage("⚠️ Please enter a club name to search.");
-       return;
+      setMessage("⚠️ Please enter a club name to search.");
+      return;
     }
 
     if (cooldown > 0) {
@@ -44,7 +45,7 @@ const SearchPreferencePage = () => {
       const response = await axios.get(`http://localhost:8080/api/search/clubs?query=${searchTerm}&userId=${user.id}`);
       setClubs(response.data);
       setMessage('');
-      setCooldown(30); // Start cooldown after search
+      setCooldown(30);
     } catch (error) {
       setMessage('⚠️ Error fetching clubs');
     }
@@ -76,15 +77,24 @@ const SearchPreferencePage = () => {
 
   return (
     <div className="search-pref-container">
-      <h2>Search Your Favorite Club</h2>
+      <h2>🔍 Search Your Favorite Club</h2>
+
+      <div className="nav-buttons">
+        <button onClick={() => navigate('/news')}>📢 News</button>
+        <button onClick={() => navigate('/rumors')}>📣 Rumors</button>
+      </div>
+
       <input
+        className="search"
         placeholder="Type club name..."
         value={searchTerm}
         onChange={(e) => setSearchTerm(e.target.value)}
       />
-      <button onClick={handleSearch} disabled={cooldown > 0}>
+      <button className="searchbutton" onClick={handleSearch} disabled={cooldown > 0}>
         {cooldown > 0 ? `Wait ${cooldown}s` : 'Search'}
       </button>
+
+      {message && <div className="info-box">{message}</div>}
 
       {clubs.map((club) => (
         <div key={club.id} className="club-result">
@@ -93,8 +103,6 @@ const SearchPreferencePage = () => {
           <button onClick={() => handleSave(club)}>Save Preference</button>
         </div>
       ))}
-
-      <p>{message}</p>
     </div>
   );
 };

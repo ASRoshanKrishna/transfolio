@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
 import '../App.css';
 
@@ -8,8 +9,8 @@ const RegisterPage = () => {
     email: '',
     password: ''
   });
-
   const [message, setMessage] = useState('');
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     setFormData(prev => ({
@@ -21,11 +22,11 @@ const RegisterPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('http://localhost:8080/api/auth/register', formData);
-      setMessage('🎉 Registered Successfully!');
-      console.log(response.data); // you can route to login now
+      await axios.post('http://localhost:8080/api/auth/register', formData);
+      setMessage('🎉 Registered Successfully! Redirecting to login...');
+      setTimeout(() => navigate('/login'), 1500);
     } catch (err) {
-      if (err.response && err.response.status === 409) {
+      if (err.response?.status === 409) {
         setMessage('⚠️ Email already exists.');
       } else {
         setMessage('❌ Registration failed.');
@@ -43,6 +44,7 @@ const RegisterPage = () => {
         <button type="submit">Register</button>
       </form>
       <p>{message}</p>
+      <p>Already have an account? <Link to="/login">Login here</Link></p>
     </div>
   );
 };

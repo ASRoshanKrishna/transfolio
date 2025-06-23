@@ -41,14 +41,14 @@ public class PersonalizedNewsService {
 
     public List<TransferRumorDTO> getRumorsForUser(Long userId) {
         List<UserPreference> preferences = preferenceRepo.findByUserId(userId);
-        List<TransferRumorDTO> summaries = new ArrayList<>();
+        List<TransferRumorDTO> allRumors = new ArrayList<>();
 
         for (UserPreference pref : preferences) {
             List<TransferRumorDTO> rawRumors = transferNewsService.fetchTransferRumors(pref.getClubIdApi(), pref.getCompetitionId());
 
             for (TransferRumorDTO dto : rawRumors) {
-                // Create context from DTO
-                String context = """
+                try {
+                    String context = """
                 Rumor for playerID: %s
                 From Club ID: %s
                 To Club ID: %s
@@ -57,24 +57,32 @@ public class PersonalizedNewsService {
                 Thread: %s
                 Closed: %s
                 """.formatted(
-                        dto.getPlayerID(),
-                        dto.getFromClubID(),
-                        dto.getToClubID(),
-                        dto.getMarketValue(), dto.getCurrency(),
-                        dto.getProbability(),
-                        dto.getThreadUrl(),
-                        dto.isClosed() ? "Yes" : "No"
-                );
+                            dto.getPlayerID(),
+                            dto.getFromClubID(),
+                            dto.getToClubID(),
+                            dto.getMarketValue(), dto.getCurrency(),
+                            dto.getProbability(),
+                            dto.getThreadUrl(),
+                            dto.isClosed() ? "Yes" : "No"
+                    );
 
-                // Generate AI summary and inject it into DTO
-                String summary = summaryGeneratorService.generateRumorSummary(context);
-                dto.setSummary(summary);
+                    // Synchronously generate summary now
+                    String summary = summaryGeneratorService.generateRumorSummary(context);
+                    dto.setSummary(summary);
 
-                summaries.add(dto);
+                    // Add to final list
+                    allRumors.add(dto);
+
+                    // Small delay to respect Gemini rate limit
+                    Thread.sleep(3000);
+                } catch (Exception e) {
+                    dto.setSummary("⚠️ Summary generation failed.");
+                    allRumors.add(dto);
+                    System.err.println("⚠️ Failed summary: " + e.getMessage());
+                }
             }
         }
 
-        return summaries;
+        return allRumors;
     }
-
 }

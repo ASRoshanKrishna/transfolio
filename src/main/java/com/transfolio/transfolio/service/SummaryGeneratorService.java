@@ -47,10 +47,10 @@ public class SummaryGeneratorService {
 
                 %s
 
-                First, check whether the transfer happened & its no longer just a rumor. Now write a(max 5 lines) fun, exciting, 
-                human-style content for fans to understand this rumor, just as Romano does. Search and include player name, 
-                position, possible clubs, fees, release clause, when transfer to be expected and spicy information happening 
-                around this transfer from context.
+                First, PLS DON'T START WITH RESPONDING TO ME. Now check whether the transfer happened & its no longer just a 
+                rumor. Now write a(max 5 lines) fun, exciting, human-style content for fans to understand this rumor, just as 
+                Romano does. Search and include player name, position, possible clubs, fees, release clause, when transfer to 
+                be expected etc. from context.
                 """.formatted(rumorContext);
 
             return sendToGemini(prompt);
@@ -63,19 +63,22 @@ public class SummaryGeneratorService {
     // Extracted Gemini API call
     private String sendToGemini(String promptText) {
         try {
+            // ✅ Delay to respect Gemini Free Tier rate limit (15 requests/min)
+            Thread.sleep(3000); // 1 second delay before each API call
+
             String payload = """
+            {
+              "contents": [
                 {
-                  "contents": [
+                  "parts": [
                     {
-                      "parts": [
-                        {
-                          "text": "%s"
-                        }
-                      ]
+                      "text": "%s"
                     }
                   ]
                 }
-                """.formatted(promptText.replace("\"", "\\\""));
+              ]
+            }
+            """.formatted(promptText.replace("\"", "\\\""));
 
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
@@ -98,10 +101,13 @@ public class SummaryGeneratorService {
                         .path("text").asText();
             }
 
+        } catch (InterruptedException ie) {
+            Thread.currentThread().interrupt();
         } catch (Exception e) {
             System.err.println("⚠️ Gemini API error: " + e.getMessage());
         }
 
         return "⚠️ Gemini summary could not be generated.";
     }
+
 }

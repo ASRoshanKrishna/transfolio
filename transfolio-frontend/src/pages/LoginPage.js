@@ -1,15 +1,15 @@
-// src/pages/LoginPage.js
 import React, { useState } from 'react';
+import { useNavigate, Link } from 'react-router-dom';
 import axios from 'axios';
-import '../App.css'; // reuse existing styling
+import '../App.css';
 
 const LoginPage = () => {
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
-
   const [message, setMessage] = useState('');
+  const navigate = useNavigate();
 
   const handleChange = (e) => {
     setFormData(prev => ({
@@ -23,24 +23,19 @@ const LoginPage = () => {
     try {
       const response = await axios.post('http://localhost:8080/api/auth/login', formData);
       const user = response.data;
-
       localStorage.setItem('user', JSON.stringify(user));
-      setMessage(`✅ Welcome, ${user.username}!`);
+      setMessage(`✅ Welcome, ${user.username}! Redirecting...`);
+      setTimeout(() => navigate('/search'), 1500);
     } catch (err) {
-      if (err.response) {
-        if (err.response.status === 404) {
-          setMessage('🙁 User not found.');
-        } else if (err.response.status === 401) {
-          setMessage('❌ Invalid password.');
-        } else {
-          setMessage('⚠️ Login failed.');
-        }
+      if (err.response?.status === 404) {
+        setMessage('🙁 User not found.');
+      } else if (err.response?.status === 401) {
+        setMessage('❌ Invalid password.');
       } else {
-        setMessage('❌ Server error.');
+        setMessage('⚠️ Login failed.');
       }
     }
   };
-
 
   return (
     <div className="register-container">
@@ -51,6 +46,7 @@ const LoginPage = () => {
         <button type="submit">Login</button>
       </form>
       <p>{message}</p>
+      <p>Don't have an account? <Link to="/register">Register here</Link></p>
     </div>
   );
 };

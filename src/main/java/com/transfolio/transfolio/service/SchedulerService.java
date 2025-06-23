@@ -12,7 +12,7 @@ public class SchedulerService {
     private final TransferFetcherService transferFetcherService;
 
     // 🕒 Runs every 15 minutes (in milliseconds)
-    @Scheduled(fixedRate = 5 * 60 * 1000)
+    @Scheduled(fixedRate = 30 * 60 * 1000)
     public void runScheduledTransferFetch() {
         System.out.println("📡 Scheduler: Fetching transfer updates for all users...");
 
