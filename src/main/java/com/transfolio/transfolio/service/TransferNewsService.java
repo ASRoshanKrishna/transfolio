@@ -2,12 +2,14 @@ package com.transfolio.transfolio.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sun.tools.jconsole.JConsoleContext;
 import com.transfolio.transfolio.dto.TransferRumorDTO;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
+import java.io.Console;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -20,9 +22,9 @@ public class TransferNewsService {
     private final String apiKey = "d50f7c3db6msh432bcd5aaf9319fp1023c8jsn4d74f1def565";
     private final String apiHost = "transfermarket.p.rapidapi.com";
 
-    public List<TransferRumorDTO> fetchTransferRumors(String clubId) {
+    public List<TransferRumorDTO> fetchTransferRumors(String clubId, String competitionId) {
         String url = "https://transfermarket.p.rapidapi.com/transfers/list-rumors?clubIds=" + clubId +
-                "&competitionIds=ES1&sort=date_desc&domain=com";
+                "&competitionIds=" + competitionId + "&sort=date_desc&domain=com";
 
         HttpHeaders headers = new HttpHeaders();
         headers.set("X-RapidAPI-Key", apiKey);
@@ -38,7 +40,7 @@ public class TransferNewsService {
                 ObjectMapper mapper = new ObjectMapper();
                 JsonNode root = mapper.readTree(response.getBody());
                 JsonNode rumors = root.path("rumors");
-
+                System.out.println("Rumors from response " + rumors);
                 for (JsonNode item : rumors) {
                     String fromId = item.path("fromClubID").asText();
                     String toId = item.path("toClubID").asText();
@@ -58,7 +60,7 @@ public class TransferNewsService {
                         dto.setClosedType(item.path("closedType").asText());
                         dto.setMarketValue(item.path("marketValue").path("value").asLong());
                         dto.setCurrency(item.path("marketValue").path("currency").asText());
-
+                        System.out.println("Rumordto " + dto);
                         resultList.add(dto);
                     }
                 }

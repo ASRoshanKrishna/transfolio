@@ -4,6 +4,7 @@ import RegisterPage from './pages/RegisterPage';
 import LoginPage from './pages/LoginPage';
 import SearchPreferencePage from './pages/SearchPreferencePage';
 import NewsPage from './pages/NewsPage';
+import RumorsPage from './pages/RumorsPage';
 
 function App() {
   return (
@@ -13,6 +14,7 @@ function App() {
         <Route path="/login" element={<LoginPage />} />
         <Route path="/search" element={<SearchPreferencePage />} />
         <Route path="/news" element={<NewsPage />} />
+        <Route path="/rumors" element={<RumorsPage />} />
         {/* Add other routes here later */}
       </Routes>
     </Router>

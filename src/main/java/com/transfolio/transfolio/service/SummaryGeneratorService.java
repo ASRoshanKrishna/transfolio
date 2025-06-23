@@ -19,19 +19,50 @@ public class SummaryGeneratorService {
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper mapper = new ObjectMapper().registerModule(new JavaTimeModule());
 
+    private static final String GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=";
+
+    // Used for transfers
     public String generateSummary(NewsEntry entry) {
         try {
-            // Convert NewsEntry to JSON string
             String entryJson = mapper.writeValueAsString(entry);
 
-            // Build full prompt
             String promptText = """
                 You are a football fan. Create a short, catchy and fun fan-style summary from the JSON below.
                 Include player's name, clubs, fee, and whether it’s a loan or permanent move.
                 JSON:
                 """ + entryJson;
 
-            // Prepare payload as String
+            return sendToGemini(promptText);
+        } catch (Exception e) {
+            System.err.println("⚠️ Failed to generate transfer summary: " + e.getMessage());
+            return "⚠️ AI summary could not be generated.";
+        }
+    }
+
+    // NEW: Used for rumors
+    public String generateRumorSummary(String rumorContext) {
+        try {
+            String prompt = """
+                You're a football insider like Fabrizio Romano, creating summaries for transfer rumors. Here is the rumor info:
+
+                %s
+
+                First, check whether the transfer happened & its no longer just a rumor. Now write a(max 5 lines) fun, exciting, 
+                human-style content for fans to understand this rumor, just as Romano does. Search and include player name, 
+                position, possible clubs, fees, release clause, when transfer to be expected and spicy information happening 
+                around this transfer from context.
+                """.formatted(rumorContext);
+
+            return sendToGemini(prompt);
+        } catch (Exception e) {
+            System.err.println("⚠️ Failed to generate rumor summary: " + e.getMessage());
+            return "⚠️ Rumor summary could not be generated.";
+        }
+    }
+
+    // Extracted Gemini API call
+    private String sendToGemini(String promptText) {
+        try {
             String payload = """
                 {
                   "contents": [
@@ -44,19 +75,15 @@ public class SummaryGeneratorService {
                     }
                   ]
                 }
-                """.formatted(promptText.replace("\"", "\\\"")); // Escape quotes
+                """.formatted(promptText.replace("\"", "\\\""));
 
-            // Prepare headers
             HttpHeaders headers = new HttpHeaders();
             headers.setContentType(MediaType.APPLICATION_JSON);
 
-            // Build request
             HttpEntity<String> request = new HttpEntity<>(payload, headers);
 
-            // Final Gemini URL
-            String url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + apiKey;
+            String url = GEMINI_URL + apiKey;
 
-            // Call Gemini API
             ResponseEntity<String> response = restTemplate.exchange(
                     url,
                     HttpMethod.POST,
@@ -64,7 +91,6 @@ public class SummaryGeneratorService {
                     String.class
             );
 
-            // Parse and extract response
             if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
                 return mapper.readTree(response.getBody())
                         .path("candidates").get(0)
@@ -73,9 +99,9 @@ public class SummaryGeneratorService {
             }
 
         } catch (Exception e) {
-            System.err.println("⚠️ Failed to generate AI summary: " + e.getMessage());
+            System.err.println("⚠️ Gemini API error: " + e.getMessage());
         }
 
-        return "⚠️ AI summary could not be generated.";
+        return "⚠️ Gemini summary could not be generated.";
     }
 }

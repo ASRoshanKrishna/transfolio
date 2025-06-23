@@ -20,7 +20,7 @@ public class PersonalizedNewsService {
     private final TransferNewsService transferNewsService;
     private final TransferFetcherService transferFetcherService;
     private final SummaryGeneratorService summaryGeneratorService;
-    private final NotificationService notificationService;
+//    private final NotificationService notificationService;
 
     public List<NewsEntry> getNewsForUser(Long userId) {
         List<UserPreference> preferences = preferenceRepo.findByUserId(userId);
@@ -41,12 +41,40 @@ public class PersonalizedNewsService {
 
     public List<TransferRumorDTO> getRumorsForUser(Long userId) {
         List<UserPreference> preferences = preferenceRepo.findByUserId(userId);
-        List<TransferRumorDTO> rumors = new ArrayList<>();
+        List<TransferRumorDTO> summaries = new ArrayList<>();
 
         for (UserPreference pref : preferences) {
-            rumors.addAll(transferNewsService.fetchTransferRumors(pref.getClubIdApi()));
+            List<TransferRumorDTO> rawRumors = transferNewsService.fetchTransferRumors(pref.getClubIdApi(), pref.getCompetitionId());
+
+            for (TransferRumorDTO dto : rawRumors) {
+                // Create context from DTO
+                String context = """
+                Rumor for playerID: %s
+                From Club ID: %s
+                To Club ID: %s
+                Market Value: %s%s
+                Probability: %s
+                Thread: %s
+                Closed: %s
+                """.formatted(
+                        dto.getPlayerID(),
+                        dto.getFromClubID(),
+                        dto.getToClubID(),
+                        dto.getMarketValue(), dto.getCurrency(),
+                        dto.getProbability(),
+                        dto.getThreadUrl(),
+                        dto.isClosed() ? "Yes" : "No"
+                );
+
+                // Generate AI summary and inject it into DTO
+                String summary = summaryGeneratorService.generateRumorSummary(context);
+                dto.setSummary(summary);
+
+                summaries.add(dto);
+            }
         }
 
-        return rumors;
+        return summaries;
     }
+
 }
