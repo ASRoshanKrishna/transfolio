@@ -3,19 +3,17 @@ FROM eclipse-temurin:17-jdk as build
 
 WORKDIR /app
 
-# Copy Maven wrapper and give execute permissions
-COPY .mvn/ .mvn/
-COPY mvnw mvnw
-COPY pom.xml pom.xml
-RUN chmod +x mvnw
+# Copy and fix mvnw permissions and line endings
+COPY mvnw .
+COPY .mvn .mvn
+COPY pom.xml .
 
-# Download dependencies
-RUN ./mvnw dependency:go-offline
+RUN chmod +x mvnw && ./mvnw dependency:go-offline
 
-# Copy the rest of the application
+# Copy the rest of the source code
 COPY . .
 
-# Package the Spring Boot app (skip tests for speed)
+# Package the Spring Boot application (skip tests)
 RUN ./mvnw clean package -DskipTests
 
 # 🚀 Run stage
@@ -24,5 +22,4 @@ WORKDIR /app
 
 COPY --from=build /app/target/*.jar app.jar
 
-# Start the Spring Boot app
 ENTRYPOINT ["java", "-jar", "app.jar"]
