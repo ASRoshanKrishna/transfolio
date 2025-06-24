@@ -4,10 +4,7 @@ import axios from 'axios';
 import '../App.css';
 
 const LoginPage = () => {
-  const [formData, setFormData] = useState({
-    email: '',
-    password: ''
-  });
+  const [formData, setFormData] = useState({ email: '', password: '' });
   const [message, setMessage] = useState('');
   const navigate = useNavigate();
 
@@ -22,18 +19,17 @@ const LoginPage = () => {
     e.preventDefault();
     try {
       const response = await axios.post('http://localhost:8080/api/auth/login', formData);
-      const user = response.data;
-      localStorage.setItem('user', JSON.stringify(user));
-      setMessage(`✅ Welcome, ${user.username}! Redirecting...`);
+      const { token, username, email, id } = response.data;
+
+      localStorage.setItem('jwtToken', token);
+      localStorage.setItem('user', JSON.stringify({ id, username, email }));
+
+      setMessage(`✅ Welcome, ${username}! Redirecting...`);
       setTimeout(() => navigate('/search'), 1500);
     } catch (err) {
-      if (err.response?.status === 404) {
-        setMessage('🙁 User not found.');
-      } else if (err.response?.status === 401) {
-        setMessage('❌ Invalid password.');
-      } else {
-        setMessage('⚠️ Login failed.');
-      }
+      if (err.response?.status === 404) setMessage('🙁 User not found.');
+      else if (err.response?.status === 401) setMessage('❌ Invalid password.');
+      else setMessage('⚠️ Login failed.');
     }
   };
 

@@ -10,6 +10,12 @@ const SearchPreferencePage = () => {
   const [cooldown, setCooldown] = useState(0);
   const navigate = useNavigate();
 
+  const logout = () => {
+    localStorage.removeItem('user');
+    localStorage.removeItem('jwtToken');
+    navigate('/login');
+  };
+
   useEffect(() => {
     let timer;
     if (cooldown > 0) {
@@ -25,8 +31,9 @@ const SearchPreferencePage = () => {
 
   const handleSearch = async () => {
     const user = JSON.parse(localStorage.getItem('user'));
+    const token = localStorage.getItem('jwtToken');
 
-    if (!user || !user.id) {
+    if (!user || !user.id || !token) {
       setMessage("❌ User not logged in.");
       return;
     }
@@ -42,7 +49,10 @@ const SearchPreferencePage = () => {
     }
 
     try {
-      const response = await axios.get(`http://localhost:8080/api/search/clubs?query=${searchTerm}&userId=${user.id}`);
+      const response = await axios.get(
+        `http://localhost:8080/api/search/clubs?query=${searchTerm}&userId=${user.id}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       setClubs(response.data);
       setMessage('');
       setCooldown(30);
@@ -53,6 +63,7 @@ const SearchPreferencePage = () => {
 
   const handleSave = async (club) => {
     const user = JSON.parse(localStorage.getItem('user'));
+    const token = localStorage.getItem('jwtToken');
 
     const payload = {
       userId: user.id,
@@ -64,7 +75,9 @@ const SearchPreferencePage = () => {
     };
 
     try {
-      await axios.post('http://localhost:8080/api/user/preferences', payload);
+      await axios.post('http://localhost:8080/api/user/preferences', payload, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
       setMessage(`✅ ${club.name} added to preferences!`);
     } catch (error) {
       if (error.response && error.response.status === 409) {
@@ -82,6 +95,7 @@ const SearchPreferencePage = () => {
       <div className="nav-buttons">
         <button onClick={() => navigate('/news')}>📢 News</button>
         <button onClick={() => navigate('/rumors')}>📣 Rumors</button>
+        <button onClick={logout}>🚪 Logout</button>
       </div>
 
       <input

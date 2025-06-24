@@ -11,8 +11,7 @@ import com.transfolio.transfolio.repository.NewsEntryRepository;
 import com.transfolio.transfolio.repository.PlayerRepository;
 import com.transfolio.transfolio.repository.UserPreferenceRepository;
 import jakarta.transaction.Transactional;
-import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -22,7 +21,6 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 @Service
-@RequiredArgsConstructor
 public class TransferFetcherService {
 
     private final UserPreferenceRepository preferenceRepo;
@@ -32,13 +30,31 @@ public class TransferFetcherService {
     private final SummaryGeneratorService summaryGeneratorService;
     private final NotificationService notificationService;
     private final String API_URL = "https://transfermarket.p.rapidapi.com/transfers/list-by-club";
-    private final String API_KEY = "d50f7c3db6msh432bcd5aaf9319fp1023c8jsn4d74f1def565";
-    private final String API_HOST = "transfermarket.p.rapidapi.com";
-
+    private final String API_KEY;
+    private final String API_HOST;
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper mapper = new ObjectMapper();
 
-    // 📍 Used by scheduler
+    public TransferFetcherService(
+            UserPreferenceRepository preferenceRepo,
+            NewsEntryRepository newsRepo,
+            ClubRepository clubRepo,
+            PlayerRepository playerRepo,
+            SummaryGeneratorService summaryGeneratorService,
+            NotificationService notificationService,
+            @Value("${rapid.api.key}") String apiKey,
+            @Value("${rapid.api.host}") String apiHost
+    ) {
+        this.preferenceRepo = preferenceRepo;
+        this.newsRepo = newsRepo;
+        this.clubRepo = clubRepo;
+        this.playerRepo = playerRepo;
+        this.summaryGeneratorService = summaryGeneratorService;
+        this.notificationService = notificationService;
+        this.API_KEY = apiKey;
+        this.API_HOST = apiHost;
+    }
+
     public void fetchTransfersForAllUsers() {
         List<UserPreference> preferences = preferenceRepo.findAll();
         for (UserPreference pref : preferences) {
@@ -46,7 +62,6 @@ public class TransferFetcherService {
         }
     }
 
-    // 📍 Used for personalized /news/{userId} live fetch
     public List<NewsEntry> fetchAndStoreTransfers(UserPreference pref) {
         List<NewsEntry> newEntries = new ArrayList<>();
 
@@ -89,7 +104,6 @@ public class TransferFetcherService {
 
         for (JsonNode item : list) {
             try {
-                // ✅ Prepare essential fields
                 String playerId = item.path("id").asText();
                 String fee = item.path("transferFee").asText();
                 String dateStr = item.path("date").asText();
@@ -101,7 +115,6 @@ public class TransferFetcherService {
                 );
                 if (exists) continue;
 
-                // ✅ Prepare Club + Player safely
                 Club club = clubRepo.findById(trackedClubId).orElseGet(() -> {
                     Club newClub = new Club();
                     newClub.setId(trackedClubId);
@@ -120,7 +133,6 @@ public class TransferFetcherService {
                     return playerRepo.save(newPlayer);
                 });
 
-                // ✅ Create and save NewsEntry
                 NewsEntry entry = new NewsEntry();
                 entry.setPlayerName(item.path("playerName").asText());
                 entry.setPlayerImage(item.path("playerImage").asText());
@@ -138,18 +150,16 @@ public class TransferFetcherService {
                 entry.setClub(club);
                 entry.setPlayer(player);
 
-                // ✅ Save initial entry (no summary yet)
                 NewsEntry savedEntry = newsRepo.save(entry);
                 saved.add(savedEntry);
 
-                // ✅ Outside transaction: Summary + Sleep + Update
                 new Thread(() -> {
                     try {
                         String summary = summaryGeneratorService.generateSummary(savedEntry);
                         savedEntry.setSummary(summary);
-                        newsRepo.save(savedEntry); // update with summary
+                        newsRepo.save(savedEntry);
                         notificationService.notifyUser(pref.getUser().getId(), summary);
-                        Thread.sleep(1000); // 👈 Now it's safely outside transaction
+                        Thread.sleep(1000);
                     } catch (Exception ex) {
                         System.err.println("⚠️ Error in summary thread: " + ex.getMessage());
                     }
@@ -162,7 +172,6 @@ public class TransferFetcherService {
 
         return saved;
     }
-
 
     private LocalDate parseDate(String dateStr) {
         try {

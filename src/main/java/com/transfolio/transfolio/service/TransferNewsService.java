@@ -6,7 +6,7 @@ import com.transfolio.transfolio.model.RumorEntry;
 import com.transfolio.transfolio.model.UserPreference;
 import com.transfolio.transfolio.repository.RumorEntryRepository;
 import com.transfolio.transfolio.repository.UserPreferenceRepository;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -14,23 +14,36 @@ import org.springframework.web.client.RestTemplate;
 import java.util.List;
 
 @Service
-@RequiredArgsConstructor
 public class TransferNewsService {
 
     private final RestTemplate restTemplate = new RestTemplate();
     private final RumorEntryRepository rumorRepo;
     private final SummaryGeneratorService summaryService;
     private final UserPreferenceRepository preferenceRepo;
+    private final String apiKey;
+    private final String apiHost;
 
-    private final String apiKey = "d50f7c3db6msh432bcd5aaf9319fp1023c8jsn4d74f1def565";
-    private final String apiHost = "transfermarket.p.rapidapi.com";
+    public TransferNewsService(
+            RumorEntryRepository rumorRepo,
+            SummaryGeneratorService summaryService,
+            UserPreferenceRepository preferenceRepo,
+            @Value("${rapid.api.key}") String apiKey,
+            @Value("${rapid.api.host}") String apiHost
+    ) {
+        this.rumorRepo = rumorRepo;
+        this.summaryService = summaryService;
+        this.preferenceRepo = preferenceRepo;
+        this.apiKey = apiKey;
+        this.apiHost = apiHost;
+    }
+
     public void fetchRumorsForAllUsers() {
         List<UserPreference> allPreferences = preferenceRepo.findAll();
 
         for (UserPreference pref : allPreferences) {
             try {
                 fetchAndStoreRumors(pref.getClubIdApi(), pref.getCompetitionId());
-                Thread.sleep(1000); // Optional: spacing for Gemini API limits
+                Thread.sleep(1000); // Gemini rate safety
             } catch (Exception e) {
                 System.err.println("❌ Failed to fetch/store rumors for clubId=" + pref.getClubIdApi());
                 e.printStackTrace();
@@ -82,7 +95,6 @@ public class TransferNewsService {
                             .trackedClubId(clubId)
                             .build();
 
-                    // Generate Gemini AI summary
                     String context = """
                             Rumor for playerID: %s
                             From Club ID: %s

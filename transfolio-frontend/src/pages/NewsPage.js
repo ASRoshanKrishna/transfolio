@@ -9,28 +9,47 @@ const NewsPage = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  const logout = () => {
+    localStorage.removeItem('user');
+    localStorage.removeItem('jwtToken');
+    navigate('/login');
+  };
+
+  const fetchNews = async () => {
+    const user = JSON.parse(localStorage.getItem('user'));
+    const token = localStorage.getItem('jwtToken');
+
+    if (!user || !token) {
+      setMessage('❌ You must be logged in to view personalized news.');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const response = await axios.get(`http://localhost:8080/api/personalized/news/${user.id}`, {
+        headers: { Authorization: `Bearer ${token}` },
+        withCredentials: true
+      });
+
+      setNews(response.data);
+      setMessage(response.data.length === 0
+        ? '📭 No transfer updates yet. Try scouting some other clubs!' : '');
+    } catch (error) {
+      setMessage('⚠️ Failed to fetch news. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchNews = async () => {
-      const user = JSON.parse(localStorage.getItem('user'));
-      if (!user || !user.id) {
-        setMessage('❌ You must be logged in to view personalized news.');
-        setLoading(false);
-        return;
-      }
-
-      try {
-        const response = await axios.get(`http://localhost:8080/api/personalized/news/${user.id}`);
-        setNews(response.data);
-        setMessage(response.data.length === 0
-          ? '📭 No transfer updates yet. Try scouting some other clubs!' : '');
-      } catch (error) {
-        setMessage('⚠️ Failed to fetch news. Please try again later.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
     fetchNews();
+
+    // Silent retry after 3 seconds to allow summaries to populate
+    const timer = setTimeout(() => {
+      fetchNews();
+    }, 3000);
+
+    return () => clearTimeout(timer);
   }, []);
 
   return (
@@ -40,6 +59,7 @@ const NewsPage = () => {
       <div className="nav-buttons">
         <button onClick={() => navigate('/search')}>🔍 Search Preferences</button>
         <button onClick={() => navigate('/rumors')}>📣 Rumors</button>
+        <button onClick={logout}>🚪 Logout</button>
       </div>
 
       {loading ? (
@@ -56,7 +76,11 @@ const NewsPage = () => {
               <span>➡️ {entry.transferType.toUpperCase()} to {entry.clubName}</span>
               <br />
               <small>💰 {entry.transferFee} | 📅 {entry.transferDate}</small>
-              <p className="summary-text">🧠 {entry.summary}</p>
+              <p className="summary-text">
+                🧠 {entry.summary?.trim()
+                  ? entry.summary
+                  : 'Generating fan-style summary... please wait! 🔄'}
+              </p>
             </div>
           </div>
         ))

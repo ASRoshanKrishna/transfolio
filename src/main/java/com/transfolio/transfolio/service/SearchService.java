@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.transfolio.transfolio.dto.SearchResultDTO;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
@@ -16,9 +17,16 @@ public class SearchService {
 
     @Autowired
     private RestTemplate restTemplate;
+    private final String apiKey;
+    private final String apiHost;
 
-    private final String apiKey = "d50f7c3db6msh432bcd5aaf9319fp1023c8jsn4d74f1def565";
-    private final String apiHost = "transfermarket.p.rapidapi.com";
+    public SearchService(
+            @Value("${rapid.api.key}") String apiKey,
+            @Value("${rapid.api.host}") String apiHost
+    ) {
+        this.apiKey = apiKey;
+        this.apiHost = apiHost;
+    }
 
     public List<SearchResultDTO> searchClubs(String query) {
         String url = "https://transfermarket.p.rapidapi.com/search?query=" + query + "&domain=com";

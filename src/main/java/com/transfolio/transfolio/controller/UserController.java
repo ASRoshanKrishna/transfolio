@@ -3,6 +3,7 @@ package com.transfolio.transfolio.controller;
 import com.transfolio.transfolio.dto.UserLoginDTO;
 import com.transfolio.transfolio.dto.UserResponseDTO;
 import com.transfolio.transfolio.model.User;
+import com.transfolio.transfolio.security.JwtUtil;
 import com.transfolio.transfolio.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,6 +18,8 @@ import java.util.Optional;
 public class UserController {
     @Autowired
     private UserService userService;
+    @Autowired
+    private JwtUtil jwtUtil;
 
     @PostMapping("/register")
     public ResponseEntity<User> register(@RequestBody User user) {
@@ -48,6 +51,8 @@ public class UserController {
         dto.setId(user.getId());
         dto.setUsername(user.getUsername());
         dto.setEmail(user.getEmail());
+        String token = jwtUtil.generateToken(String.valueOf(user.getId()));
+        dto.setToken(token); // Add this field to UserResponseDTO if needed
 
         return ResponseEntity.ok(dto);
     }

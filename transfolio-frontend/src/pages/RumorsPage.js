@@ -8,17 +8,31 @@ const RumorsPage = () => {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
 
+  const logout = () => {
+    localStorage.removeItem('user');
+    localStorage.removeItem('jwtToken');
+    navigate('/login');
+  };
+
   useEffect(() => {
     const fetchRumors = async () => {
       const user = JSON.parse(localStorage.getItem('user'));
-      if (!user || !user.id) {
+      const token = localStorage.getItem('jwtToken');
+
+      if (!user || !token) {
         setRumors([{ summary: '❌ You must be logged in to view rumors.' }]);
         setLoading(false);
         return;
       }
 
       try {
-        const response = await axios.get(`http://localhost:8080/api/personalized/rumors/${user.id}`);
+        const response = await axios.get(
+          `http://localhost:8080/api/personalized/rumors/${user.id}`,
+          {
+              headers: { Authorization: `Bearer ${token}` },
+              withCredentials: true
+          }
+        );
         const data = response.data;
 
         if (data.length === 0) {
@@ -44,6 +58,7 @@ const RumorsPage = () => {
       <div className="nav-buttons">
         <button onClick={() => navigate('/news')}>📢 News</button>
         <button onClick={() => navigate('/search')}>🔍 Search</button>
+        <button onClick={logout}>🚪 Logout</button>
       </div>
 
       {loading && <p>🌀 Loading rumors...</p>}
