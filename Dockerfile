@@ -1,5 +1,5 @@
 # 🏗️ Build stage
-FROM eclipse-temurin:17-jdk as build
+FROM eclipse-temurin:21-jdk as build
 
 WORKDIR /app
 
@@ -17,7 +17,7 @@ COPY . .
 RUN ./mvnw clean package -DskipTests
 
 # 🚀 Run stage
-FROM eclipse-temurin:17-jdk
+FROM eclipse-temurin:21-jdk
 WORKDIR /app
 
 COPY --from=build /app/target/*.jar app.jar
