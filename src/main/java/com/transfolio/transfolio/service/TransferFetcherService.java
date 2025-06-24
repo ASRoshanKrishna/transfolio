@@ -125,8 +125,8 @@ public class TransferFetcherService {
                 entry.setPlayerName(item.path("playerName").asText());
                 entry.setPlayerImage(item.path("playerImage").asText());
                 entry.setAge(item.path("age").asInt());
-                entry.setPosition(item.path("position").asText());
-                entry.setPositionsDetail(item.path("positionsdetail").asText());
+                entry.setPositionsDetail(item.path("position").asText());
+                entry.setPosition(item.path("positionsdetail").asText());
                 entry.setTransferType(type);
                 entry.setTransferFee(fee);
                 entry.setClubName(pref.getClubName());

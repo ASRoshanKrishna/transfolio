@@ -2,75 +2,121 @@ package com.transfolio.transfolio.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.sun.tools.jconsole.JConsoleContext;
-import com.transfolio.transfolio.dto.TransferRumorDTO;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.transfolio.transfolio.model.RumorEntry;
+import com.transfolio.transfolio.model.UserPreference;
+import com.transfolio.transfolio.repository.RumorEntryRepository;
+import com.transfolio.transfolio.repository.UserPreferenceRepository;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
-import java.io.Console;
-import java.util.ArrayList;
 import java.util.List;
 
 @Service
+@RequiredArgsConstructor
 public class TransferNewsService {
 
-    @Autowired
-    private RestTemplate restTemplate;
+    private final RestTemplate restTemplate = new RestTemplate();
+    private final RumorEntryRepository rumorRepo;
+    private final SummaryGeneratorService summaryService;
+    private final UserPreferenceRepository preferenceRepo;
 
     private final String apiKey = "d50f7c3db6msh432bcd5aaf9319fp1023c8jsn4d74f1def565";
     private final String apiHost = "transfermarket.p.rapidapi.com";
+    public void fetchRumorsForAllUsers() {
+        List<UserPreference> allPreferences = preferenceRepo.findAll();
 
-    public List<TransferRumorDTO> fetchTransferRumors(String clubId, String competitionId) {
+        for (UserPreference pref : allPreferences) {
+            try {
+                fetchAndStoreRumors(pref.getClubIdApi(), pref.getCompetitionId());
+                Thread.sleep(1000); // Optional: spacing for Gemini API limits
+            } catch (Exception e) {
+                System.err.println("❌ Failed to fetch/store rumors for clubId=" + pref.getClubIdApi());
+                e.printStackTrace();
+            }
+        }
+    }
+
+    public void fetchAndStoreRumors(String clubId, String competitionId) {
         String url = "https://transfermarket.p.rapidapi.com/transfers/list-rumors?clubIds=" + clubId +
                 "&competitionIds=" + competitionId + "&sort=date_desc&domain=com";
 
         HttpHeaders headers = new HttpHeaders();
         headers.set("X-RapidAPI-Key", apiKey);
         headers.set("X-RapidAPI-Host", apiHost);
+        headers.setContentType(MediaType.APPLICATION_JSON);
 
         HttpEntity<String> entity = new HttpEntity<>(headers);
         ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity, String.class);
-
-        List<TransferRumorDTO> resultList = new ArrayList<>();
 
         if (response.getStatusCode() == HttpStatus.OK && response.getBody() != null) {
             try {
                 ObjectMapper mapper = new ObjectMapper();
                 JsonNode root = mapper.readTree(response.getBody());
                 JsonNode rumors = root.path("rumors");
-                System.out.println("Rumors from response " + rumors);
+
                 for (JsonNode item : rumors) {
                     String fromId = item.path("fromClubID").asText();
                     String toId = item.path("toClubID").asText();
 
-                    if (clubId.equals(fromId) || clubId.equals(toId)) {
-                        TransferRumorDTO dto = new TransferRumorDTO();
-                        dto.setId(item.path("id").asText());
-                        dto.setPlayerID(item.path("playerID").asText());
-                        dto.setFromClubID(fromId);
-                        dto.setToClubID(toId);
-                        dto.setClosed(item.path("isClosed").asBoolean());
-                        dto.setProbability(item.path("probability").asText());
-                        dto.setProgression(item.path("progression").asText());
-                        dto.setThreadUrl(item.path("threadUrl").asText());
-                        dto.setLang(item.path("lang").asText());
-                        dto.setLastPostDate(item.path("lastPostDate").asLong());
-                        dto.setClosedType(item.path("closedType").asText());
-                        dto.setMarketValue(item.path("marketValue").path("value").asLong());
-                        dto.setCurrency(item.path("marketValue").path("currency").asText());
-                        System.out.println("Rumordto " + dto);
-                        resultList.add(dto);
-                    }
+                    if (!clubId.equals(fromId) && !clubId.equals(toId)) continue;
+
+                    String rumorId = item.path("id").asText();
+                    if (rumorRepo.existsById(rumorId)) continue;
+
+                    RumorEntry rumor = RumorEntry.builder()
+                            .id(rumorId)
+                            .playerID(item.path("playerID").asText())
+                            .fromClubID(fromId)
+                            .toClubID(toId)
+                            .isClosed(item.path("isClosed").asBoolean())
+                            .probability(item.path("probability").asText())
+                            .progression(item.path("progression").asText())
+                            .threadUrl(item.path("threadUrl").asText())
+                            .lang(item.path("lang").asText())
+                            .lastPostDate(item.path("lastPostDate").asLong())
+                            .closedType(item.path("closedType").asText())
+                            .marketValue(item.path("marketValue").path("value").asLong())
+                            .currency(item.path("marketValue").path("currency").asText())
+                            .trackedClubId(clubId)
+                            .build();
+
+                    // Generate Gemini AI summary
+                    String context = """
+                            Rumor for playerID: %s
+                            From Club ID: %s
+                            To Club ID: %s
+                            Market Value: %s%s
+                            Probability: %s
+                            Thread: %s
+                            Closed: %s
+                            """.formatted(
+                            rumor.getPlayerID(),
+                            rumor.getFromClubID(),
+                            rumor.getToClubID(),
+                            rumor.getMarketValue(), rumor.getCurrency(),
+                            rumor.getProbability(),
+                            rumor.getThreadUrl(),
+                            rumor.isClosed() ? "Yes" : "No"
+                    );
+
+                    String summary = summaryService.generateRumorSummary(context);
+                    rumor.setSummary(summary);
+
+                    rumorRepo.save(rumor);
                 }
 
             } catch (Exception e) {
-                System.err.println("❌ Error parsing rumors response");
+                System.err.println("❌ Error parsing or saving rumors");
                 e.printStackTrace();
             }
+        } else {
+            System.err.println("❌ Failed to fetch rumors for clubId = " + clubId);
         }
+    }
 
-        return resultList;
+    public List<RumorEntry> getRumorsByClub(String clubId) {
+        return rumorRepo.findByTrackedClubIdOrderByLastPostDateDesc(clubId);
     }
 }

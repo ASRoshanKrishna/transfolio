@@ -1,10 +1,11 @@
 package com.transfolio.transfolio.service;
 
-import com.transfolio.transfolio.dto.TransferRumorDTO;
 import com.transfolio.transfolio.model.NewsEntry;
+import com.transfolio.transfolio.model.RumorEntry;
 import com.transfolio.transfolio.model.UserPreference;
 import com.transfolio.transfolio.repository.NewsEntryRepository;
 import com.transfolio.transfolio.repository.UserPreferenceRepository;
+import com.transfolio.transfolio.repository.RumorEntryRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
@@ -17,10 +18,9 @@ public class PersonalizedNewsService {
 
     private final UserPreferenceRepository preferenceRepo;
     private final NewsEntryRepository newsRepo;
+    private final RumorEntryRepository rumorRepo;
     private final TransferNewsService transferNewsService;
     private final TransferFetcherService transferFetcherService;
-    private final SummaryGeneratorService summaryGeneratorService;
-//    private final NotificationService notificationService;
 
     public List<NewsEntry> getNewsForUser(Long userId) {
         List<UserPreference> preferences = preferenceRepo.findByUserId(userId);
@@ -39,48 +39,17 @@ public class PersonalizedNewsService {
         return finalResult;
     }
 
-    public List<TransferRumorDTO> getRumorsForUser(Long userId) {
+    public List<RumorEntry> getRumorsForUser(Long userId) {
         List<UserPreference> preferences = preferenceRepo.findByUserId(userId);
-        List<TransferRumorDTO> allRumors = new ArrayList<>();
+
+        List<RumorEntry> allRumors = new ArrayList<>();
 
         for (UserPreference pref : preferences) {
-            List<TransferRumorDTO> rawRumors = transferNewsService.fetchTransferRumors(pref.getClubIdApi(), pref.getCompetitionId());
+            // 1. Fetch + Store fresh rumors into DB (if new)
+            transferNewsService.fetchAndStoreRumors(pref.getClubIdApi(), pref.getCompetitionId());
 
-            for (TransferRumorDTO dto : rawRumors) {
-                try {
-                    String context = """
-                Rumor for playerID: %s
-                From Club ID: %s
-                To Club ID: %s
-                Market Value: %s%s
-                Probability: %s
-                Thread: %s
-                Closed: %s
-                """.formatted(
-                            dto.getPlayerID(),
-                            dto.getFromClubID(),
-                            dto.getToClubID(),
-                            dto.getMarketValue(), dto.getCurrency(),
-                            dto.getProbability(),
-                            dto.getThreadUrl(),
-                            dto.isClosed() ? "Yes" : "No"
-                    );
-
-                    // Synchronously generate summary now
-                    String summary = summaryGeneratorService.generateRumorSummary(context);
-                    dto.setSummary(summary);
-
-                    // Add to final list
-                    allRumors.add(dto);
-
-                    // Small delay to respect Gemini rate limit
-                    Thread.sleep(3000);
-                } catch (Exception e) {
-                    dto.setSummary("⚠️ Summary generation failed.");
-                    allRumors.add(dto);
-                    System.err.println("⚠️ Failed summary: " + e.getMessage());
-                }
-            }
+            // 2. Add all from DB to result
+            allRumors.addAll(rumorRepo.findByTrackedClubIdOrderByLastPostDateDesc(pref.getClubIdApi()));
         }
 
         return allRumors;

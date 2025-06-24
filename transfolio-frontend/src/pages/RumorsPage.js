@@ -26,7 +26,6 @@ const RumorsPage = () => {
         } else {
           setRumors(data);
         }
-
       } catch (err) {
         console.error("Error fetching rumors", err);
         setRumors([{ summary: '⚠️ Failed to load rumors.' }]);
@@ -52,7 +51,7 @@ const RumorsPage = () => {
       {rumors.map((rumor, idx) => (
         <div key={idx} className="rumor-card">
           <p className="summary-text">
-            {rumor.summary || '🤖 Generating summary...'}
+            {rumor.summary || '🤖 Summary not available.'}
           </p>
           {rumor.threadUrl && rumor.threadUrl.includes("http") && (
             <a

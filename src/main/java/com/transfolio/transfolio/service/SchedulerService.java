@@ -1,6 +1,5 @@
 package com.transfolio.transfolio.service;
 
-import com.transfolio.transfolio.service.TransferFetcherService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -10,17 +9,26 @@ import org.springframework.stereotype.Service;
 public class SchedulerService {
 
     private final TransferFetcherService transferFetcherService;
+    private final TransferNewsService rumorFetcherService; // ✅ Add this
 
-    // 🕒 Runs every 15 minutes (in milliseconds)
+    // 🕒 Runs every 30 minutes (in milliseconds)
     @Scheduled(fixedRate = 30 * 60 * 1000)
-    public void runScheduledTransferFetch() {
-        System.out.println("📡 Scheduler: Fetching transfer updates for all users...");
+    public void runScheduledFetch() {
+        System.out.println("📡 Scheduler: Fetching transfer and rumor updates for all users...");
 
         try {
             transferFetcherService.fetchTransfersForAllUsers();
             System.out.println("✅ Scheduler: Completed fetching transfers.");
         } catch (Exception e) {
-            System.err.println("❌ Scheduler error: " + e.getMessage());
+            System.err.println("❌ Scheduler error (transfers): " + e.getMessage());
+            e.printStackTrace();
+        }
+
+        try {
+            rumorFetcherService.fetchRumorsForAllUsers();  // ✅ Fetch rumors for all users
+            System.out.println("✅ Scheduler: Completed fetching rumors.");
+        } catch (Exception e) {
+            System.err.println("❌ Scheduler error (rumors): " + e.getMessage());
             e.printStackTrace();
         }
     }
