@@ -11,8 +11,8 @@ public class SchedulerService {
     private final TransferFetcherService transferFetcherService;
     private final TransferNewsService rumorFetcherService; // ✅ Add this
 
-    // 🕒 Runs every 30 minutes (in milliseconds)
-    @Scheduled(fixedRate = 30 * 60 * 1000)
+    // 🕒 Runs every 60 minutes (in milliseconds)
+    @Scheduled(fixedRate = 60 * 60 * 1000)
     public void runScheduledFetch() {
         System.out.println("📡 Scheduler: Fetching transfer and rumor updates for all users...");
 
