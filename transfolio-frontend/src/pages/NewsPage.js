@@ -26,7 +26,7 @@ const NewsPage = () => {
     }
 
     try {
-      const response = await axios.get(`http://localhost:8080/api/personalized/news/${user.id}`, {
+      const response = await axios.get(`https://transfolio-backend.onrender.com/api/personalized/news/${user.id}`, {
         headers: { Authorization: `Bearer ${token}` },
         withCredentials: true
       });

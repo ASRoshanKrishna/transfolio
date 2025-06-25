@@ -18,7 +18,7 @@ const LoginPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const response = await axios.post('http://localhost:8080/api/auth/login', formData);
+      const response = await axios.post('https://transfolio-backend.onrender.com/api/auth/login', formData);
       const { token, username, email, id } = response.data;
 
       localStorage.setItem('jwtToken', token);

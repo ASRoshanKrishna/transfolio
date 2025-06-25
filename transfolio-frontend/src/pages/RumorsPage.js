@@ -27,7 +27,7 @@ const RumorsPage = () => {
 
       try {
         const response = await axios.get(
-          `http://localhost:8080/api/personalized/rumors/${user.id}`,
+          `https://transfolio-backend.onrender.com/api/personalized/rumors/${user.id}`,
           {
               headers: { Authorization: `Bearer ${token}` },
               withCredentials: true

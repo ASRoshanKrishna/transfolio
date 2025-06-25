@@ -50,7 +50,7 @@ const SearchPreferencePage = () => {
 
     try {
       const response = await axios.get(
-        `http://localhost:8080/api/search/clubs?query=${searchTerm}&userId=${user.id}`,
+        `https://transfolio-backend.onrender.com/api/search/clubs?query=${searchTerm}&userId=${user.id}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setClubs(response.data);
@@ -75,7 +75,7 @@ const SearchPreferencePage = () => {
     };
 
     try {
-      await axios.post('http://localhost:8080/api/user/preferences', payload, {
+      await axios.post('https://transfolio-backend.onrender.com/api/user/preferences', payload, {
         headers: { Authorization: `Bearer ${token}` }
       });
       setMessage(`✅ ${club.name} added to preferences!`);

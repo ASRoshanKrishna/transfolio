@@ -22,7 +22,7 @@ const RegisterPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axios.post('http://localhost:8080/api/auth/register', formData);
+      await axios.post('https://transfolio-backend.onrender.com/api/auth/register', formData);
       setMessage('🎉 Registered Successfully! Redirecting to login...');
       setTimeout(() => navigate('/login'), 1500);
     } catch (err) {
