@@ -2,10 +2,10 @@ package com.transfolio.transfolio.model;
 
 import jakarta.persistence.*;
 import lombok.Data;
-
 import java.util.List;
 
 @Entity
+@Table(name = "app_user")  //✅ Renamed to avoid PostgreSQL reserved word
 @Data
 public class User {
 
