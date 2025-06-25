@@ -51,15 +51,15 @@ Users can register, pick their favorite clubs, and receive a personalized feed o
 
 - **Login Page**: Users can register or log in to access their personalized dashboard.
 
-![Image](https://github.com/user-attachments/assets/e0c372be-e567-461c-9a07-faa5904947d3)
+![Image](https://github.com/user-attachments/assets/5dcee8c4-c331-4ca5-a9b0-eb51eec61e4b)
 
 - **Club Search**: Example search for “Madrid,” adding Real Madrid to favorites.
 
-![Image](https://github.com/user-attachments/assets/7172427f-c077-437b-84cb-0785843fd804)
+![Image](https://github.com/user-attachments/assets/137fe9d7-525a-4c53-a82a-dbe44b96253f)
 
 - **News Feed**: Shows player, club, type (arrival/departure), fee, and AI-generated summary.
 
-![Image](https://github.com/user-attachments/assets/ea77661c-1e9a-4492-850b-ba2e753cfc98)
+![Image](https://github.com/user-attachments/assets/4c10fd54-625c-4aca-bc1a-85597cf8e83d)
 
 ---
 
