@@ -1,2 +1,7 @@
+# Enforce LF endings for all text files
+* text=auto eol=lf
+
+# Ensure proper line endings and permissions for Maven and shell scripts
 /mvnw text eol=lf
+*.sh text eol=lf
 *.cmd text eol=crlf
