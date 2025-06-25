@@ -14,8 +14,9 @@ public class WebConfig {
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
                         .allowedOrigins(
-                                "http://localhost:3000",
-                                "https://transfolio-wlln.vercel.app"
+                                "http://localhost:3000", // optional for dev
+                                "https://transfolio-wlln-git-main-roshan-krishna-a-ss-projects.vercel.app",
+                                "https://transfolio-wlln-r7o7gfhug-roshan-krishna-a-ss-projects.vercel.app"
                         )
                         .allowedMethods("*")
                         .allowedHeaders("*")
