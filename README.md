@@ -30,8 +30,8 @@ Users can register, pick their favorite clubs, and receive a personalized feed o
 
 ## ✨ Try It Now!
 
-👉 [Live Site](https://transfolio.vercel.app)  
-👉 [Backend API](https://render.com/)  
+👉 [Live Site](https://transfolio-wlln.vercel.app/)  
+👉 [Backend API](https://transfolio-backend.onrender.com)  
 👉 [GitHub Repo](https://github.com/ASRoshanKrishna/transfolio)
 
 ---
