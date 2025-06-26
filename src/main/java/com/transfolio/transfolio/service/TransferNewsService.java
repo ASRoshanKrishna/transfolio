@@ -13,7 +13,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
-
 @Service
 public class TransferNewsService {
 
@@ -22,7 +21,8 @@ public class TransferNewsService {
     private final SummaryGeneratorService summaryService;
     private final UserPreferenceRepository preferenceRepo;
     private final NotificationService notificationService;
-    private final String apiKey;
+    private final String userApiKey;
+    private final String rumorApiKey;
     private final String apiHost;
 
     public TransferNewsService(
@@ -30,14 +30,16 @@ public class TransferNewsService {
             SummaryGeneratorService summaryService,
             UserPreferenceRepository preferenceRepo,
             NotificationService notificationService,
-            @Value("${rapid.api.key}") String apiKey,
+            @Value("${rapid.api.key.user}") String userApiKey,
+            @Value("${rapid.api.key.rumor}") String rumorApiKey,
             @Value("${rapid.api.host}") String apiHost
     ) {
         this.rumorRepo = rumorRepo;
         this.summaryService = summaryService;
         this.preferenceRepo = preferenceRepo;
         this.notificationService = notificationService;
-        this.apiKey = apiKey;
+        this.userApiKey = userApiKey;
+        this.rumorApiKey = rumorApiKey;
         this.apiHost = apiHost;
     }
 
@@ -46,7 +48,7 @@ public class TransferNewsService {
 
         for (UserPreference pref : allPreferences) {
             try {
-                fetchAndStoreRumors(pref.getClubIdApi(), pref.getCompetitionId(), pref.getUser());
+                fetchAndStoreRumors(pref.getClubIdApi(), pref.getCompetitionId(), pref.getUser(), 1); // mode=1 scheduler
                 Thread.sleep(1000); // Gemini rate safety
             } catch (Exception e) {
                 System.err.println("❌ Failed to fetch/store rumors for clubId=" + pref.getClubIdApi());
@@ -55,12 +57,14 @@ public class TransferNewsService {
         }
     }
 
-    public void fetchAndStoreRumors(String clubId, String competitionId, User user) {
+    public void fetchAndStoreRumors(String clubId, String competitionId, User user, int mode) {
+        String apiKeyToUse = (mode == 1) ? rumorApiKey : userApiKey;
+
         String url = "https://transfermarket.p.rapidapi.com/transfers/list-rumors?clubIds=" + clubId +
                 "&competitionIds=" + competitionId + "&sort=date_desc&domain=com";
 
         HttpHeaders headers = new HttpHeaders();
-        headers.set("X-RapidAPI-Key", apiKey);
+        headers.set("X-RapidAPI-Key", apiKeyToUse);
         headers.set("X-RapidAPI-Host", apiHost);
         headers.setContentType(MediaType.APPLICATION_JSON);
 
@@ -97,7 +101,7 @@ public class TransferNewsService {
                             .marketValue(item.path("marketValue").path("value").asLong())
                             .currency(item.path("marketValue").path("currency").asText())
                             .trackedClubId(clubId)
-                            .user(user) // ✅ Set user
+                            .user(user)
                             .build();
 
                     String context = """

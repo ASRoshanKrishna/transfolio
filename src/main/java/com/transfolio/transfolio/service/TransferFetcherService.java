@@ -30,7 +30,8 @@ public class TransferFetcherService {
     private final SummaryGeneratorService summaryGeneratorService;
     private final NotificationService notificationService;
     private final String API_URL = "https://transfermarket.p.rapidapi.com/transfers/list-by-club";
-    private final String API_KEY;
+    private final String userApiKey;
+    private final String transferApiKey;
     private final String API_HOST;
     private final RestTemplate restTemplate = new RestTemplate();
     private final ObjectMapper mapper = new ObjectMapper();
@@ -42,7 +43,8 @@ public class TransferFetcherService {
             PlayerRepository playerRepo,
             SummaryGeneratorService summaryGeneratorService,
             NotificationService notificationService,
-            @Value("${rapid.api.key}") String apiKey,
+            @Value("${rapid.api.key.user}") String userApiKey,
+            @Value("${rapid.api.key.transfer}") String transferApiKey,
             @Value("${rapid.api.host}") String apiHost
     ) {
         this.preferenceRepo = preferenceRepo;
@@ -51,19 +53,21 @@ public class TransferFetcherService {
         this.playerRepo = playerRepo;
         this.summaryGeneratorService = summaryGeneratorService;
         this.notificationService = notificationService;
-        this.API_KEY = apiKey;
+        this.userApiKey = userApiKey;
+        this.transferApiKey = transferApiKey;
         this.API_HOST = apiHost;
     }
 
     public void fetchTransfersForAllUsers() {
         List<UserPreference> preferences = preferenceRepo.findAll();
         for (UserPreference pref : preferences) {
-            fetchAndStoreTransfers(pref);
+            fetchAndStoreTransfers(pref, 1);
         }
     }
 
-    public List<NewsEntry> fetchAndStoreTransfers(UserPreference pref) {
+    public List<NewsEntry> fetchAndStoreTransfers(UserPreference pref, int mode) {
         List<NewsEntry> newEntries = new ArrayList<>();
+        String API_KEY = (mode == 1) ? transferApiKey : userApiKey;
 
         HttpHeaders headers = new HttpHeaders();
         headers.set("X-RapidAPI-Key", API_KEY);

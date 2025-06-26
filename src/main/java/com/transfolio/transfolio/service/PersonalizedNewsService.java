@@ -27,7 +27,7 @@ public class PersonalizedNewsService {
 
         // Step 1: Ensure latest data is stored
         for (UserPreference pref : preferences) {
-            transferFetcherService.fetchAndStoreTransfers(pref);
+            transferFetcherService.fetchAndStoreTransfers(pref, 0);
         }
 
         // Step 2: Fetch ALL transfer news from DB for the user's tracked clubs
@@ -46,7 +46,7 @@ public class PersonalizedNewsService {
 
         for (UserPreference pref : preferences) {
             // 1. Fetch + Store fresh rumors into DB (if new)
-            transferNewsService.fetchAndStoreRumors(pref.getClubIdApi(), pref.getCompetitionId(), pref.getUser());
+            transferNewsService.fetchAndStoreRumors(pref.getClubIdApi(), pref.getCompetitionId(), pref.getUser(), 0); // mode=0 for direct fetch
 
             // 2. Add all from DB to result
             allRumors.addAll(rumorRepo.findByTrackedClubIdOrderByLastPostDateDesc(pref.getClubIdApi()));
