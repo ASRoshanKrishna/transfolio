@@ -21,7 +21,7 @@ public class SearchService {
     private final String apiHost;
 
     public SearchService(
-            @Value("${rapid.api.key}") String apiKey,
+            @Value("${rapid.api.key.user}") String apiKey,
             @Value("${rapid.api.host}") String apiHost
     ) {
         this.apiKey = apiKey;
