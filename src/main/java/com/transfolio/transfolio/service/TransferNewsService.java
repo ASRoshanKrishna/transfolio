@@ -3,6 +3,7 @@ package com.transfolio.transfolio.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.transfolio.transfolio.model.RumorEntry;
+import com.transfolio.transfolio.model.User;
 import com.transfolio.transfolio.model.UserPreference;
 import com.transfolio.transfolio.repository.RumorEntryRepository;
 import com.transfolio.transfolio.repository.UserPreferenceRepository;
@@ -20,6 +21,7 @@ public class TransferNewsService {
     private final RumorEntryRepository rumorRepo;
     private final SummaryGeneratorService summaryService;
     private final UserPreferenceRepository preferenceRepo;
+    private final NotificationService notificationService;
     private final String apiKey;
     private final String apiHost;
 
@@ -27,12 +29,14 @@ public class TransferNewsService {
             RumorEntryRepository rumorRepo,
             SummaryGeneratorService summaryService,
             UserPreferenceRepository preferenceRepo,
+            NotificationService notificationService,
             @Value("${rapid.api.key}") String apiKey,
             @Value("${rapid.api.host}") String apiHost
     ) {
         this.rumorRepo = rumorRepo;
         this.summaryService = summaryService;
         this.preferenceRepo = preferenceRepo;
+        this.notificationService = notificationService;
         this.apiKey = apiKey;
         this.apiHost = apiHost;
     }
@@ -42,7 +46,7 @@ public class TransferNewsService {
 
         for (UserPreference pref : allPreferences) {
             try {
-                fetchAndStoreRumors(pref.getClubIdApi(), pref.getCompetitionId());
+                fetchAndStoreRumors(pref.getClubIdApi(), pref.getCompetitionId(), pref.getUser());
                 Thread.sleep(1000); // Gemini rate safety
             } catch (Exception e) {
                 System.err.println("❌ Failed to fetch/store rumors for clubId=" + pref.getClubIdApi());
@@ -51,7 +55,7 @@ public class TransferNewsService {
         }
     }
 
-    public void fetchAndStoreRumors(String clubId, String competitionId) {
+    public void fetchAndStoreRumors(String clubId, String competitionId, User user) {
         String url = "https://transfermarket.p.rapidapi.com/transfers/list-rumors?clubIds=" + clubId +
                 "&competitionIds=" + competitionId + "&sort=date_desc&domain=com";
 
@@ -76,7 +80,7 @@ public class TransferNewsService {
                     if (!clubId.equals(fromId) && !clubId.equals(toId)) continue;
 
                     String rumorId = item.path("id").asText();
-                    if (rumorRepo.existsById(rumorId)) continue;
+                    if (rumorRepo.existsByIdAndUser(rumorId, user)) continue;
 
                     RumorEntry rumor = RumorEntry.builder()
                             .id(rumorId)
@@ -93,6 +97,7 @@ public class TransferNewsService {
                             .marketValue(item.path("marketValue").path("value").asLong())
                             .currency(item.path("marketValue").path("currency").asText())
                             .trackedClubId(clubId)
+                            .user(user) // ✅ Set user
                             .build();
 
                     String context = """
@@ -117,6 +122,7 @@ public class TransferNewsService {
                     rumor.setSummary(summary);
 
                     rumorRepo.save(rumor);
+                    notificationService.notifyUser(user.getId(), summary);
                 }
 
             } catch (Exception e) {

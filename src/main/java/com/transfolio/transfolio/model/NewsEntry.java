@@ -49,4 +49,9 @@ public class NewsEntry {
     private String positionsDetail;
 
     private boolean isRelevant;
+
+    // ✅ NEW: Add user reference
+    @ManyToOne
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 }

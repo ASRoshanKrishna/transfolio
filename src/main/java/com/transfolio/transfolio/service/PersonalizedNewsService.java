@@ -46,7 +46,7 @@ public class PersonalizedNewsService {
 
         for (UserPreference pref : preferences) {
             // 1. Fetch + Store fresh rumors into DB (if new)
-            transferNewsService.fetchAndStoreRumors(pref.getClubIdApi(), pref.getCompetitionId());
+            transferNewsService.fetchAndStoreRumors(pref.getClubIdApi(), pref.getCompetitionId(), pref.getUser());
 
             // 2. Add all from DB to result
             allRumors.addAll(rumorRepo.findByTrackedClubIdOrderByLastPostDateDesc(pref.getClubIdApi()));

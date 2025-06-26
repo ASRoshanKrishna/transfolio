@@ -109,9 +109,10 @@ public class TransferFetcherService {
                 String dateStr = item.path("date").asText();
                 LocalDate transferDate = parseDate(dateStr);
                 String trackedClubId = pref.getClubIdApi();
+                Long userId = pref.getUser().getId();
 
-                boolean exists = newsRepo.existsByPlayer_IdAndTransferDateAndClub_Id(
-                        playerId, transferDate, trackedClubId
+                boolean exists = newsRepo.existsByPlayer_IdAndTransferDateAndClub_IdAndUser(
+                        playerId, transferDate, trackedClubId, pref.getUser()
                 );
                 if (exists) continue;
 
@@ -149,6 +150,8 @@ public class TransferFetcherService {
                 entry.setTransferDate(transferDate);
                 entry.setClub(club);
                 entry.setPlayer(player);
+                // ✅ Set the user
+                entry.setUser(pref.getUser());
 
                 NewsEntry savedEntry = newsRepo.save(entry);
                 saved.add(savedEntry);
@@ -158,7 +161,7 @@ public class TransferFetcherService {
                         String summary = summaryGeneratorService.generateSummary(savedEntry);
                         savedEntry.setSummary(summary);
                         newsRepo.save(savedEntry);
-                        notificationService.notifyUser(pref.getUser().getId(), summary);
+                        notificationService.notifyUser(userId, summary);
                         Thread.sleep(1000);
                     } catch (Exception ex) {
                         System.err.println("⚠️ Error in summary thread: " + ex.getMessage());

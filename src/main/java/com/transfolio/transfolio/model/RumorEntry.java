@@ -33,4 +33,9 @@ public class RumorEntry {
     private String summary;
 
     private String trackedClubId;
+
+    // ✅ New field for per-user rumor tracking
+    @ManyToOne
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 }
