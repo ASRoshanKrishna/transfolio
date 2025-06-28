@@ -9,8 +9,8 @@ import java.util.List;
 public interface RumorEntryRepository extends JpaRepository<RumorEntry, Long> {
 
     List<RumorEntry> findByTrackedClubIdOrderByLastPostDateDesc(String clubId);
-    boolean existsById(String id);
+    boolean existsById(Long id);
     // ✅ New: Check existence per user
-    boolean existsByIdAndUser(String id, User user);
+    boolean existsByIdAndUser(Long id, User user);
     boolean existsByOriginalRumorIdAndUser(String originalRumorId, User user);
 }
