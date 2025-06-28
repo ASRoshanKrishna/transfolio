@@ -20,4 +20,5 @@ public interface NewsEntryRepository extends JpaRepository<NewsEntry, Long> {
     // ✅ NEW: User-aware version to prevent duplicate news per user
     boolean existsByPlayer_IdAndTransferDateAndClub_IdAndUser(String playerId, LocalDate transferDate, String clubId, User user);
     List<NewsEntry> findByClub_IdOrderByTransferDateDesc(String clubId);
+    List<NewsEntry> findByClub_IdAndUserOrderByTransferDateDesc(String clubId, User user);
 }

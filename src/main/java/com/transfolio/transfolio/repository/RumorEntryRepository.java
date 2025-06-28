@@ -13,4 +13,5 @@ public interface RumorEntryRepository extends JpaRepository<RumorEntry, Long> {
     // ✅ New: Check existence per user
     boolean existsByIdAndUser(Long id, User user);
     boolean existsByOriginalRumorIdAndUser(String originalRumorId, User user);
+    List<RumorEntry> findByTrackedClubIdAndUserOrderByLastPostDateDesc(String clubId, User user);
 }

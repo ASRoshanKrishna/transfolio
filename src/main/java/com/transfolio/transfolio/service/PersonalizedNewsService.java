@@ -33,7 +33,7 @@ public class PersonalizedNewsService {
         // Step 2: Fetch ALL transfer news from DB for the user's tracked clubs
         List<NewsEntry> finalResult = new ArrayList<>();
         for (UserPreference pref : preferences) {
-            finalResult.addAll(newsRepo.findByClub_IdOrderByTransferDateDesc(pref.getClubIdApi()));
+            finalResult.addAll(newsRepo.findByClub_IdAndUserOrderByTransferDateDesc(pref.getClubIdApi(), pref.getUser()));
         }
 
         return finalResult;
@@ -49,7 +49,7 @@ public class PersonalizedNewsService {
             transferNewsService.fetchAndStoreRumors(pref.getClubIdApi(), pref.getCompetitionId(), pref.getUser(), 0); // mode=0 for direct fetch
 
             // 2. Add all from DB to result
-            allRumors.addAll(rumorRepo.findByTrackedClubIdOrderByLastPostDateDesc(pref.getClubIdApi()));
+            allRumors.addAll(rumorRepo.findByTrackedClubIdAndUserOrderByLastPostDateDesc(pref.getClubIdApi(), pref.getUser()));
         }
 
         return allRumors;
