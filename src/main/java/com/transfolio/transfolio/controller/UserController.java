@@ -34,7 +34,7 @@ public class UserController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody UserLoginDTO loginDTO) {
-        Object result = userService.login(loginDTO.getEmail(), loginDTO.getPassword());
+        Object result = userService.login(loginDTO.getUsername(), loginDTO.getPassword());
 
         if (result instanceof Integer) {
             int code = (Integer) result;
