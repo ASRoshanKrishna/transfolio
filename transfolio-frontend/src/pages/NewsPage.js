@@ -25,8 +25,8 @@ const NewsPage = () => {
       return;
     }
 
-    setLoading(true);       // ✅ show loader again
-    setNews([]);            // ✅ clear old news before new fetch
+    setLoading(true);
+    setNews([]);
 
     try {
       const response = await axios.get(`https://transfolio-backend.onrender.com/api/personalized/news/${user.id}`, {
@@ -47,13 +47,23 @@ const NewsPage = () => {
 
   useEffect(() => {
     fetchNews();
-
-    const timer = setTimeout(() => {
-      fetchNews(); // ✅ second fetch, now safe with cleanup
-    }, 12000);
-
-    return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    const hasUnready = news.some(
+      (entry) =>
+        !entry.summary?.trim() ||
+        entry.summary.toLowerCase().includes('generating')
+    );
+
+    if (hasUnready) {
+      const timer = setTimeout(() => {
+        fetchNews();
+      }, 12000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [news]);
 
   return (
     <div className="news-container">

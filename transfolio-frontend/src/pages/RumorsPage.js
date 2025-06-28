@@ -25,8 +25,8 @@ const RumorsPage = () => {
       return;
     }
 
-    setLoading(true);     // ✅ Start fresh
-    setRumors([]);        // ✅ Clear old rumors before fetch
+    setLoading(true);
+    setRumors([]);
 
     try {
       const response = await axios.get(
@@ -56,13 +56,23 @@ const RumorsPage = () => {
 
   useEffect(() => {
     fetchRumors();
-
-    const timer = setTimeout(() => {
-      fetchRumors();
-    }, 12000); // ⏱ Second attempt after 12 seconds
-
-    return () => clearTimeout(timer);
   }, []);
+
+  useEffect(() => {
+    const hasUnready = rumors.some(
+      (rumor) =>
+        !rumor.summary?.trim() ||
+        rumor.summary.toLowerCase().includes('generating')
+    );
+
+    if (hasUnready) {
+      const timer = setTimeout(() => {
+        fetchRumors();
+      }, 12000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [rumors]);
 
   return (
     <div className="news-container">
