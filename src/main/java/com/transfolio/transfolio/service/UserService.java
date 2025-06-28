@@ -20,8 +20,9 @@ public class UserService {
         return userRepo.save(user);
     }
 
-    public Object login(String email, String password) {
-        Optional<User> userOpt = userRepo.findByEmail(email);
+    // 🔁 Username-based login
+    public Object login(String username, String password) {
+        Optional<User> userOpt = userRepo.findByUsername(username);
 
         if (userOpt.isEmpty()) {
             return 0; // user not found

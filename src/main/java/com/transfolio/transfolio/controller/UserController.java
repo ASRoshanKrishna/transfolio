@@ -10,8 +10,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Optional;
-
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor
@@ -34,6 +32,7 @@ public class UserController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody UserLoginDTO loginDTO) {
+        // ✅ Using username instead of email
         Object result = userService.login(loginDTO.getUsername(), loginDTO.getPassword());
 
         if (result instanceof Integer) {
@@ -52,9 +51,8 @@ public class UserController {
         dto.setUsername(user.getUsername());
         dto.setEmail(user.getEmail());
         String token = jwtUtil.generateToken(String.valueOf(user.getId()));
-        dto.setToken(token); // Add this field to UserResponseDTO if needed
+        dto.setToken(token);
 
         return ResponseEntity.ok(dto);
     }
-
 }
