@@ -6,6 +6,7 @@ import '../App.css';
 const RumorsPage = () => {
   const [rumors, setRumors] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [attempt, setAttempt] = useState(1);
   const navigate = useNavigate();
 
   const logout = () => {
@@ -32,18 +33,22 @@ const RumorsPage = () => {
           withCredentials: true
         }
       );
+
       const data = response.data;
 
-      if (data.length === 0) {
+      // ⬇️ Show fallback only after second attempt
+      if (data.length === 0 && attempt >= 2) {
         setRumors([{ summary: '🙈 No rumors yet. Try tracking more clubs!' }]);
-      } else {
+      } else if (data.length > 0) {
         setRumors(data);
       }
+
     } catch (err) {
       console.error("Error fetching rumors", err);
       setRumors([{ summary: '⚠️ Failed to load rumors.' }]);
     } finally {
       setLoading(false);
+      setAttempt(prev => prev + 1);
     }
   };
 
@@ -52,7 +57,7 @@ const RumorsPage = () => {
 
     const timer = setTimeout(() => {
       fetchRumors();
-    }, 12000); // 12-second refresh like NewsPage
+    }, 12000); // ⏱ Second attempt after 12 seconds
 
     return () => clearTimeout(timer);
   }, []);
