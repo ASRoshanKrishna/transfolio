@@ -44,9 +44,13 @@ const SearchPreferencePage = () => {
     }
 
     if (cooldown > 0) {
-      setMessage(`⏳ Please wait ${cooldown}s before searching again.`);
+      setMessage(`⏳Loading, Please wait ${cooldown}s before searching again.`);
       return;
     }
+
+    // ⏳ Start cooldown immediately after button click
+      setCooldown(30);
+      setMessage("🔍 Searching clubs...");
 
     try {
       const response = await axios.get(
@@ -54,8 +58,9 @@ const SearchPreferencePage = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       setClubs(response.data);
-      setMessage('');
-      setCooldown(30);
+          setMessage(response.data.length === 0
+            ? '🙁 No matching clubs found.'
+            : '');
     } catch (error) {
       setMessage('⚠️ Error fetching clubs');
     }

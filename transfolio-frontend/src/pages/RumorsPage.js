@@ -14,41 +14,47 @@ const RumorsPage = () => {
     navigate('/login');
   };
 
-  useEffect(() => {
-    const fetchRumors = async () => {
-      const user = JSON.parse(localStorage.getItem('user'));
-      const token = localStorage.getItem('jwtToken');
+  const fetchRumors = async () => {
+    const user = JSON.parse(localStorage.getItem('user'));
+    const token = localStorage.getItem('jwtToken');
 
-      if (!user || !token) {
-        setRumors([{ summary: '❌ You must be logged in to view rumors.' }]);
-        setLoading(false);
-        return;
-      }
+    if (!user || !token) {
+      setRumors([{ summary: '❌ You must be logged in to view rumors.' }]);
+      setLoading(false);
+      return;
+    }
 
-      try {
-        const response = await axios.get(
-          `https://transfolio-backend.onrender.com/api/personalized/rumors/${user.id}`,
-          {
-              headers: { Authorization: `Bearer ${token}` },
-              withCredentials: true
-          }
-        );
-        const data = response.data;
-
-        if (data.length === 0) {
-          setRumors([{ summary: '🙈 No rumors yet. Try tracking more clubs!' }]);
-        } else {
-          setRumors(data);
+    try {
+      const response = await axios.get(
+        `https://transfolio-backend.onrender.com/api/personalized/rumors/${user.id}`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+          withCredentials: true
         }
-      } catch (err) {
-        console.error("Error fetching rumors", err);
-        setRumors([{ summary: '⚠️ Failed to load rumors.' }]);
-      } finally {
-        setLoading(false);
-      }
-    };
+      );
+      const data = response.data;
 
+      if (data.length === 0) {
+        setRumors([{ summary: '🙈 No rumors yet. Try tracking more clubs!' }]);
+      } else {
+        setRumors(data);
+      }
+    } catch (err) {
+      console.error("Error fetching rumors", err);
+      setRumors([{ summary: '⚠️ Failed to load rumors.' }]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
     fetchRumors();
+
+    const timer = setTimeout(() => {
+      fetchRumors();
+    }, 12000); // 12-second refresh like NewsPage
+
+    return () => clearTimeout(timer);
   }, []);
 
   return (

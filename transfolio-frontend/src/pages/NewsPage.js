@@ -44,10 +44,10 @@ const NewsPage = () => {
   useEffect(() => {
     fetchNews();
 
-    // Silent retry after 3 seconds to allow summaries to populate
+    // Silent retry after 12 seconds to allow summaries to populate
     const timer = setTimeout(() => {
       fetchNews();
-    }, 3000);
+    }, 12000);
 
     return () => clearTimeout(timer);
   }, []);

@@ -84,10 +84,10 @@ public class TransferNewsService {
                     if (!clubId.equals(fromId) && !clubId.equals(toId)) continue;
 
                     String rumorId = item.path("id").asText();
-                    if (rumorRepo.existsByIdAndUser(rumorId, user)) continue;
+                    if (rumorRepo.existsByOriginalRumorIdAndUser(rumorId, user)) continue;
 
                     RumorEntry rumor = RumorEntry.builder()
-                            .id(rumorId)
+                            .originalRumorId(rumorId)
                             .playerID(item.path("playerID").asText())
                             .fromClubID(fromId)
                             .toClubID(toId)
@@ -122,11 +122,17 @@ public class TransferNewsService {
                             rumor.isClosed() ? "Yes" : "No"
                     );
 
-                    String summary = summaryService.generateRumorSummary(context);
-                    rumor.setSummary(summary);
-
-                    rumorRepo.save(rumor);
-                    notificationService.notifyUser(user.getId(), summary);
+                    new Thread(() -> {
+                        try {
+                            String summary = summaryService.generateRumorSummary(context);
+                            rumor.setSummary(summary);
+                            rumorRepo.save(rumor);
+                            notificationService.notifyUser(user.getId(), summary);
+                            Thread.sleep(1000); // optional
+                        } catch (Exception ex) {
+                            System.err.println("⚠️ Error in rumor summary thread: " + ex.getMessage());
+                        }
+                    }).start();
                 }
 
             } catch (Exception e) {

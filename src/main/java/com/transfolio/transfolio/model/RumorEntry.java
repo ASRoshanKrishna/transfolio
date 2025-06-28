@@ -14,7 +14,10 @@ import lombok.*;
 public class RumorEntry {
 
     @Id
-    private String id; // Same as rumor ID from API
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;  // auto-generated
+
+    private String originalRumorId; // from API
 
     private String playerID;
     private String fromClubID;
