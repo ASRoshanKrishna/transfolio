@@ -25,6 +25,9 @@ const NewsPage = () => {
       return;
     }
 
+    setLoading(true);       // ✅ show loader again
+    setNews([]);            // ✅ clear old news before new fetch
+
     try {
       const response = await axios.get(`https://transfolio-backend.onrender.com/api/personalized/news/${user.id}`, {
         headers: { Authorization: `Bearer ${token}` },
@@ -33,7 +36,8 @@ const NewsPage = () => {
 
       setNews(response.data);
       setMessage(response.data.length === 0
-        ? '📭 No transfer updates yet. Try scouting some other clubs!' : '');
+        ? '📭 No transfer updates yet. Try scouting some other clubs!'
+        : '');
     } catch (error) {
       setMessage('⚠️ Failed to fetch news. Please try again later.');
     } finally {
@@ -44,9 +48,8 @@ const NewsPage = () => {
   useEffect(() => {
     fetchNews();
 
-    // Silent retry after 12 seconds to allow summaries to populate
     const timer = setTimeout(() => {
-      fetchNews();
+      fetchNews(); // ✅ second fetch, now safe with cleanup
     }, 12000);
 
     return () => clearTimeout(timer);

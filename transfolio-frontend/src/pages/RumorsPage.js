@@ -25,6 +25,9 @@ const RumorsPage = () => {
       return;
     }
 
+    setLoading(true);     // ✅ Start fresh
+    setRumors([]);        // ✅ Clear old rumors before fetch
+
     try {
       const response = await axios.get(
         `https://transfolio-backend.onrender.com/api/personalized/rumors/${user.id}`,
@@ -36,7 +39,6 @@ const RumorsPage = () => {
 
       const data = response.data;
 
-      // ⬇️ Show fallback only after second attempt
       if (data.length === 0 && attempt >= 2) {
         setRumors([{ summary: '🙈 No rumors yet. Try tracking more clubs!' }]);
       } else if (data.length > 0) {
